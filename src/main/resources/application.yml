@@ -1,0 +1,76 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: netis-backend
+
+  # Primary DataSource (PostgreSQL)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: ntflow
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # OAuth2 Resource Server
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:9000
+
+# Oracle DataSource
+oracle:
+  datasource:
+    url: jdbc:oracle:thin:@10.1.0.103:1521/FREE
+    username: hm_busan
+    password: hm_soft
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+# ClickHouse DataSource
+clickhouse:
+  datasource:
+    url: jdbc:ch://10.1.1.186:8123/busan_bigdata
+    username: netis
+    password: ntflow
+
+# MyBatis
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.example.netisbackend.dto.menu
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.example.netisbackend: DEBUG
+    org.springframework.security: INFO

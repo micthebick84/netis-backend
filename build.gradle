@@ -1,0 +1,81 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.1'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '24'
+    targetCompatibility = '24'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.fork = false
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://projectlombok.org/edge-releases' }
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // OAuth2 Resource Server (JWT)
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+    // PostgreSQL JDBC
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // Oracle JDBC
+    implementation 'com.oracle.database.jdbc:ojdbc11:23.3.0.23.09'
+
+    // MyBatis
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+
+    // ClickHouse JDBC
+    implementation 'com.clickhouse:clickhouse-jdbc:0.6.0-patch5:http'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.1'
+
+    // Lombok (edge version for Java 24)
+    compileOnly 'org.projectlombok:lombok:edge-SNAPSHOT'
+    annotationProcessor 'org.projectlombok:lombok:edge-SNAPSHOT'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+
+    forkEvery = 0
+    maxParallelForks = 1
+
+    minHeapSize = "128m"
+    maxHeapSize = "512m"
+    jvmArgs = ['-XX:+UseSerialGC', '-XX:MaxMetaspaceSize=256m']
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        showExceptions true
+        showCauses true
+        showStackTraces true
+    }
+}

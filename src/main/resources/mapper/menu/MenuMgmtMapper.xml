@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.MenuMgmtMapper">
+
+    <!-- ========== ResultMap 정의 ========== -->
+
+    <resultMap type="com.example.netisbackend.dto.menu.MenuMgmtDto" id="resultPageList">
+        <result property="menuNo"           column="menu_no"/>
+        <result property="menuName"         column="menu_name"/>
+        <result property="menuKind"         column="menu_kind"/>
+        <result property="menuAuth"         column="menu_auth"/>
+        <result property="menuAuthNM"       column="menu_auth_nm"/>
+        <result property="menuPageNo"       column="menu_page_no"/>
+        <result property="menuPageGrpNo"    column="menu_page_grp_no"/>
+        <result property="guid"             column="guid"/>
+        <result property="siteName"         column="site_name"/>
+        <result property="visibleOrder"     column="visible_order"/>
+        <result property="isWebuse"         column="is_webuse"/>
+        <result property="webIconClass"     column="web_icon_class"/>
+        <result property="originMenuName"   column="org_menu_name"/>
+        <result property="menuType"         column="menu_type"/>
+    </resultMap>
+
+    <!-- ========== SELECT 쿼리 (PostgreSQL) ========== -->
+
+    <select id="selectPageList" resultMap="resultPageList">
+        SELECT  menu_no,
+                menu_name,
+                menu_kind,
+                menu_auth,
+                menu_page_no,
+                menu_page_grp_no,
+                guid,
+                site_name,
+                visible_order,
+                is_webuse,
+                web_icon_class
+        FROM    com_menu
+        WHERE   menu_kind = 'PAGE'
+        AND     site_name = #{siteName}
+    </select>
+
+    <select id="selectPageGroupList" resultMap="resultPageList">
+        SELECT  menu_no,
+                menu_name,
+                menu_kind,
+                menu_auth,
+                menu_page_no,
+                menu_page_grp_no,
+                guid,
+                site_name,
+                visible_order,
+                is_webuse,
+                web_icon_class
+        FROM    com_menu
+        WHERE   menu_kind = 'PAGE_GROUP'
+        AND     menu_page_no = #{menuPageNo}
+        AND     site_name = #{siteName}
+    </select>
+
+    <select id="selectMenuList" resultMap="resultPageList">
+        SELECT  menu_no,
+                a.menu_name,
+                menu_kind,
+                menu_auth,
+                CASE menu_auth
+                    WHEN '1' THEN 'User'
+                    WHEN '2' THEN 'Admin'
+                    WHEN '3' THEN 'System'
+                END AS menu_auth_nm,
+                menu_page_no,
+                menu_page_grp_no,
+                a.guid,
+                site_name,
+                visible_order,
+                is_webuse,
+                web_icon_class,
+                CASE WHEN b.guid IS NULL
+                     THEN a.menu_type
+                     ELSE 'Layout'
+                END AS menu_type,
+                CASE WHEN b.guid IS NULL
+                     THEN ''
+                     ELSE b.menu_name
+                END AS org_menu_name
+        FROM    com_menu a
+        LEFT OUTER JOIN com_menu_layout b
+                ON a.guid = b.guid
+        WHERE   menu_kind = 'MENU'
+        AND     menu_page_grp_no = #{menuPageGrpNo}
+        AND     menu_page_no = #{menuPageNo}
+        AND     site_name = #{siteName}
+    </select>
+
+</mapper>

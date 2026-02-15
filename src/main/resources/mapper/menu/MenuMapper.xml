@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.MenuMapper">
+
+    <!-- ========== ResultMap 정의 ========== -->
+
+    <resultMap type="com.example.netisbackend.dto.menu.PageDto" id="resultPage">
+        <id property="pageNo"       column="page_no"/>
+        <result property="pageName"     column="page_name"/>
+        <result property="orderNo"      column="page_order_no"/>
+        <result property="webIconClass" column="web_icon_class"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.menu.PageGrpDto" id="resultPageGrp">
+        <id property="pageNo"       column="page_no"/>
+        <id property="pageGrpNo"    column="page_grp_no"/>
+        <result property="pageGrpName"  column="page_grp_name"/>
+        <result property="orderNo"      column="page_grp_order_no"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.menu.MenuDto" id="resultPageMenu">
+        <id property="pageNo"       column="page_no"/>
+        <id property="pageGrpNo"    column="page_grp_no"/>
+        <id property="menuNo"       column="menu_no"/>
+        <result property="menuName"     column="menu_name"/>
+        <result property="guid"         column="guid"/>
+        <result property="menuAuth"     column="menu_auth"/>
+        <result property="orderNo"      column="page_menu_order_no"/>
+        <result property="menuType"     column="menu_type"/>
+        <result property="linkViewType" column="link_view_type"/>
+        <result property="grpType"      column="grp_type"/>
+        <result property="scondUse"     column="scond_use"/>
+        <result property="rtUse"        column="rt_use"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.menu.PageDto"
+               id="resultHierarchicalMenuList" extends="resultPage">
+        <collection property="children"
+                    ofType="com.example.netisbackend.dto.menu.PageGrpDto">
+            <id property="pageNo"       column="page_no"/>
+            <id property="pageGrpNo"    column="page_grp_no"/>
+            <result property="pageGrpName"  column="page_grp_name"/>
+            <result property="orderNo"      column="page_grp_order_no"/>
+            <collection property="children" resultMap="resultPageMenu"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="resultLayoutMenu"
+               type="com.example.netisbackend.dto.menu.LayoutMenuDto">
+        <result property="menuName"  column="menu_name"/>
+        <result property="guid"      column="guid"/>
+        <result property="grpType"   column="grp_type"/>
+        <result property="scondUse"  column="scond_use"/>
+        <result property="isRegMenu" column="is_reg_menu"/>
+    </resultMap>
+
+    <resultMap id="resultLayoutMenuCond"
+               type="com.example.netisbackend.dto.menu.LayoutMenuCondDto">
+        <result property="guid"     column="guid"/>
+        <result property="condType" column="cond_type"/>
+    </resultMap>
+
+    <!-- ========== SELECT 쿼리 (PostgreSQL) ========== -->
+
+    <select id="selectHierarchicalMenuList" resultMap="resultHierarchicalMenuList">
+        SELECT  page.menu_no AS page_no,
+                page.menu_name AS page_name,
+                COALESCE(page.visible_order, 0) AS page_order_no,
+                page.site_name,
+                page_group.menu_no AS page_grp_no,
+                page_group.menu_name AS page_grp_name,
+                COALESCE(page_group.visible_order, 0) AS page_grp_order_no,
+                menu.menu_no AS menu_no,
+                menu.usr_menu_name AS menu_name,
+                menu.guid AS guid,
+                menu.menu_auth AS menu_auth,
+                COALESCE(menu.visible_order, 0) AS page_menu_order_no,
+                page.web_icon_class,
+                menu.grp_type,
+                menu.scond_use,
+                menu.rt_use,
+                CASE WHEN menu.menu_type IS NOT NULL
+                     THEN menu.menu_type
+                     ELSE menu.usr_menu_type
+                END AS menu_type,
+                menu.link_view_type
+        FROM    com_menu page
+        JOIN    com_menu page_group
+                ON page.menu_no = page_group.menu_page_no
+                AND page.site_name = page_group.site_name
+        JOIN    (
+                SELECT  a1.*,
+                        COALESCE(b1.menu_nm, a1.menu_name) AS usr_menu_name,
+                        c1.grp_type, c1.scond_use, c1.rt_use,
+                        CASE WHEN NULLIF(c1.guid, '') IS NULL
+                             THEN a1.menu_type
+                             ELSE 'LAYOUT'
+                        END AS usr_menu_type
+                FROM    com_menu a1
+                LEFT OUTER JOIN cm_cfg_layout_view_env b1
+                        ON a1.guid = b1.view_kind AND b1.user_id = #{userId}
+                LEFT OUTER JOIN (
+                    SELECT guid, menu_name, grp_type, scond_use, rt_use
+                    FROM   com_menu_layout
+                    UNION ALL
+                    SELECT guid, menu_name, 'NONE' AS grp_type, scond_use, 0 AS rt_use
+                    FROM   com_menu_widget
+                ) c1 ON a1.guid = c1.guid
+                ) menu
+                ON page.menu_no = menu.menu_page_no
+                AND page_group.menu_no = menu.menu_page_grp_no
+                AND page.site_name = menu.site_name
+        WHERE   page.menu_kind = 'PAGE'
+        AND     page_group.menu_kind = 'PAGE_GROUP'
+        AND     menu.menu_kind = 'MENU'
+        AND     page.site_name = #{siteName}
+        AND     menu.is_webuse = 1
+        <if test="auth != 'System'">
+            AND menu.menu_no IN (
+                SELECT rel_key_no
+                FROM   cm_auth_menu_rel
+                WHERE  auth_no = CASE
+                    WHEN #{menuAuthNo} = 0 THEN
+                        CASE
+                            WHEN #{auth} = 'Admin' THEN 1
+                            WHEN #{auth} = 'MUser' THEN 2
+                            WHEN #{auth} = 'User'  THEN 3
+                            ELSE 0
+                        END
+                    ELSE #{menuAuthNo}
+                END
+            )
+        </if>
+        ORDER BY page_order_no, page_grp_order_no, page_menu_order_no
+    </select>
+
+    <select id="selectMenuListAll" resultType="com.example.netisbackend.dto.menu.MenuDto">
+        SELECT  a.menu_kind AS menu_type,
+                a.menu_no,
+                CASE
+                    WHEN a.menu_kind = 'MENU' THEN menu_page_grp_no
+                    WHEN a.menu_kind = 'PAGE_GROUP' THEN menu_page_no
+                END AS page_grp_no,
+                a.menu_name,
+                a.guid
+        FROM    com_menu a
+        WHERE   site_name = #{siteName}
+        AND     ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
+        <if test="_parameter.containsKey('disableLayout') and disableLayout == 1">
+            AND NOT EXISTS (SELECT 1 FROM com_menu_layout b WHERE a.guid = b.guid)
+        </if>
+        ORDER BY visible_order ASC
+    </select>
+
+    <select id="selectPageGroupList" resultType="java.util.HashMap">
+        SELECT a.menu_no AS "menuNo", COALESCE(b.menu_cnt, 0) AS "menuCnt"
+        FROM (
+            SELECT menu_no, menu_name
+            FROM   com_menu
+            WHERE  site_name = #{siteName}
+            AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
+            AND    menu_kind = 'PAGE_GROUP'
+            ORDER BY visible_order ASC
+        ) a
+        LEFT JOIN (
+            SELECT CASE WHEN menu_kind = 'MENU' THEN menu_page_grp_no END AS page_grp_no,
+                   COUNT(menu_no) AS menu_cnt
+            FROM   com_menu
+            WHERE  site_name = #{siteName}
+            AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
+            AND    menu_kind = 'MENU'
+            GROUP BY CASE WHEN menu_kind = 'MENU' THEN menu_page_grp_no END
+        ) b ON a.menu_no = b.page_grp_no
+        WHERE b.menu_cnt IS NULL
+    </select>
+
+    <select id="selectPageList" resultType="java.util.HashMap">
+        SELECT c.page_grp_no AS "pageGrpNo", SUM(c.menu_cnt) AS "menuCnt"
+        FROM (
+            SELECT a.*,
+                   COALESCE(b.menu_cnt, 0) AS menu_cnt
+            FROM (
+                SELECT menu_kind AS menu_type,
+                       menu_no,
+                       CASE
+                           WHEN menu_kind = 'MENU' THEN menu_page_grp_no
+                           WHEN menu_kind = 'PAGE_GROUP' THEN menu_page_no
+                       END AS page_grp_no,
+                       menu_name
+                FROM   com_menu
+                WHERE  site_name = #{siteName}
+                AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
+            ) a
+            LEFT JOIN (
+                SELECT CASE WHEN menu_kind = 'MENU' THEN menu_page_grp_no END AS page_grp_no,
+                       COUNT(menu_no) AS menu_cnt
+                FROM (
+                    SELECT menu_kind AS menu_type,
+                           menu_no,
+                           CASE
+                               WHEN menu_kind = 'MENU' THEN menu_page_grp_no
+                               WHEN menu_kind = 'PAGE_GROUP' THEN menu_page_no
+                           END AS page_grp_no,
+                           menu_name
+                    FROM   com_menu
+                    WHERE  site_name = #{siteName}
+                    AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
+                ) sub
+                WHERE sub.menu_type = 'MENU'
+                GROUP BY CASE WHEN menu_kind = 'MENU' THEN menu_page_grp_no END
+            ) b ON a.menu_no = b.page_grp_no
+            WHERE a.menu_type != 'MENU'
+        ) c
+        WHERE c.menu_type = 'PAGE_GROUP'
+        GROUP BY c.page_grp_no
+        HAVING SUM(c.menu_cnt) = 0
+    </select>
+
+    <select id="selectLayoutMenuList" resultMap="resultLayoutMenu">
+        SELECT  a.menu_name, a.guid, a.grp_type, a.scond_use,
+                CASE WHEN b.guid IS NULL THEN 0 ELSE 1 END AS is_reg_menu
+        FROM    com_menu_layout a
+        LEFT JOIN com_menu b
+                ON a.guid = b.guid
+                AND b.menu_kind = 'MENU'
+                AND b.site_name = #{siteName}
+    </select>
+
+    <select id="selectLayoutMenuCondList" resultMap="resultLayoutMenuCond">
+        SELECT guid, cond_type
+        FROM   com_menu_layout_type
+        <if test="_parameter.containsKey('guid') and guid != null">
+            WHERE guid = #{guid}
+        </if>
+    </select>
+
+    <select id="selectMenuAuthExistCnt" resultType="int">
+        SELECT  COUNT(*) AS cnt
+        FROM    com_menu a
+        JOIN    cm_auth_menu_rel b ON a.menu_no = b.rel_key_no
+        JOIN    com_user c ON b.auth_no = COALESCE(
+                    c.menu_auth_no,
+                    CASE
+                        WHEN c.auth = 'Admin' THEN 1
+                        WHEN c.auth = 'MUser' THEN 2
+                        ELSE 3
+                    END
+                )
+        WHERE   a.menu_kind = 'MENU'
+        AND     c.user_id = #{userId}
+        AND     a.guid = #{guid}
+    </select>
+
+    <select id="selectDashMenuNo" resultType="String">
+        SELECT menu_no::text
+        FROM   com_menu
+        WHERE  guid = 'BB590E9A-A453-4F8A-B1D8-737A4D07BDD0'
+        LIMIT 1
+    </select>
+
+    <select id="selectMenuLoc" resultType="java.util.HashMap">
+        WITH parent_menu AS (
+            SELECT * FROM com_menu WHERE menu_kind IN ('PAGE', 'PAGE_GROUP')
+        )
+        SELECT
+            (SELECT menu_name FROM parent_menu pm WHERE pm.menu_no = m.menu_page_no) AS "menuPageName",
+            (SELECT menu_name FROM parent_menu pm WHERE pm.menu_no = m.menu_page_grp_no) AS "menuGrpName",
+            m.menu_name AS "menuName"
+        FROM com_menu m
+        WHERE guid = #{guid}
+    </select>
+
+</mapper>
