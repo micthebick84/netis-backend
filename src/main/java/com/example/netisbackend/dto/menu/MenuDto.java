@@ -20,4 +20,5 @@ public class MenuDto {
     private String grpType;
     private String scondUse;
     private String rtUse;
+    private String urlPath;
 }

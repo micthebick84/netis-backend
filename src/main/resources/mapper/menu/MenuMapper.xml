@@ -32,6 +32,7 @@
         <result property="grpType"      column="grp_type"/>
         <result property="scondUse"     column="scond_use"/>
         <result property="rtUse"        column="rt_use"/>
+        <result property="urlPath"      column="url_path"/>
     </resultMap>
 
     <resultMap type="com.example.netisbackend.dto.menu.PageDto"
@@ -84,7 +85,8 @@
                      THEN menu.menu_type
                      ELSE menu.usr_menu_type
                 END AS menu_type,
-                menu.link_view_type
+                menu.link_view_type,
+                menu.url_path
         FROM    com_menu page
         JOIN    com_menu page_group
                 ON page.menu_no = page_group.menu_page_no
@@ -143,7 +145,8 @@
                     WHEN a.menu_kind = 'PAGE_GROUP' THEN menu_page_no
                 END AS page_grp_no,
                 a.menu_name,
-                a.guid
+                a.guid,
+                a.url_path
         FROM    com_menu a
         WHERE   site_name = #{siteName}
         AND     ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
