@@ -1,10 +1,7 @@
 package com.example.netisbackend.config;
 
-import com.example.netisbackend.mapper.MenuMapper;
-import com.example.netisbackend.mapper.MenuMgmtMapper;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
-import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -15,21 +12,24 @@ import javax.sql.DataSource;
 
 @Configuration
 @MapperScan(
-    basePackageClasses = {MenuMapper.class, MenuMgmtMapper.class},
-    sqlSessionFactoryRef = "mybatisSqlSessionFactory"
+    basePackages = "com.example.netisbackend.mapper.transport",
+    sqlSessionFactoryRef = "clickHouseSqlSessionFactory"
 )
-public class MyBatisConfig {
+public class ClickHouseMyBatisConfig {
 
     @Bean
-    public SqlSessionFactory mybatisSqlSessionFactory(
-            @Qualifier("postgresDataSource") DataSource dataSource) throws Exception {
+    public SqlSessionFactory clickHouseSqlSessionFactory(
+            @Qualifier("clickHouseDataSource") DataSource dataSource) throws Exception {
         SqlSessionFactoryBean factoryBean = new SqlSessionFactoryBean();
         factoryBean.setDataSource(dataSource);
         factoryBean.setMapperLocations(
             new PathMatchingResourcePatternResolver()
-                .getResources("classpath:mapper/menu/*.xml")
+                .getResources("classpath:mapper/transport/*.xml")
         );
-        factoryBean.setTypeAliasesPackage("com.example.netisbackend.dto.menu");
+        factoryBean.setTypeAliasesPackage(
+            "com.example.netisbackend.dto.transport," +
+            "com.example.netisbackend.dto.transport.stats"
+        );
 
         org.apache.ibatis.session.Configuration config =
             new org.apache.ibatis.session.Configuration();
@@ -38,11 +38,5 @@ public class MyBatisConfig {
         factoryBean.setConfiguration(config);
 
         return factoryBean.getObject();
-    }
-
-    @Bean
-    public SqlSessionTemplate mybatisSqlSessionTemplate(
-            @Qualifier("mybatisSqlSessionFactory") SqlSessionFactory sqlSessionFactory) {
-        return new SqlSessionTemplate(sqlSessionFactory);
     }
 }

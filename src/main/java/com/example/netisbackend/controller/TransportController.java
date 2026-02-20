@@ -2,6 +2,7 @@ package com.example.netisbackend.controller;
 
 import com.example.netisbackend.dto.ApiResponse;
 import com.example.netisbackend.dto.transport.*;
+import com.example.netisbackend.dto.transport.stats.*;
 import com.example.netisbackend.service.TransportAnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -88,5 +89,77 @@ public class TransportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ApiResponse.success(transportService.getHourTickets(startDate, endDate));
+    }
+
+    // ===== Stats endpoints =====
+
+    @GetMapping("/stats/day-of-week")
+    public ApiResponse<List<DayOfWeekStatsResponse>> getDayOfWeekStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getDayOfWeekStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/hourly")
+    public ApiResponse<List<HourlyStatsResponse>> getHourlyStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getHourlyStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/ticket-type")
+    public ApiResponse<List<TicketTypeStatsResponse>> getTicketTypeStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getTicketTypeStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/card-type")
+    public ApiResponse<List<CardTypeStatsResponse>> getCardTypeStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getCardTypeStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/top-boarding-stations")
+    public ApiResponse<List<TopBoardingStationStatsResponse>> getTopBoardingStationStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getTopBoardingStationStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/station-imbalance")
+    public ApiResponse<List<StationImbalanceStatsResponse>> getStationImbalanceStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getStationImbalanceStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/route-efficiency")
+    public ApiResponse<List<RouteEfficiencyStatsResponse>> getRouteEfficiencyStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getRouteEfficiencyStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/hour-ticket-cross")
+    public ApiResponse<List<HourTicketCrossResponse>> getHourTicketCrossStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getHourTicketCrossStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/free-fare")
+    public ApiResponse<List<FreeFareStatsResponse>> getFreeFareStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getFreeFareStats(startDate, endDate));
+    }
+
+    @GetMapping("/stats/raw-summary")
+    public ApiResponse<RawDataSummaryResponse> getRawDataSummary(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ApiResponse.success(transportService.getRawDataSummary(startDate, endDate));
     }
 }

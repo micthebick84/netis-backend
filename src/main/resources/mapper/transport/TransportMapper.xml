@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.transport.TransportMapper">
+
+    <!-- ========================================== -->
+    <!-- ResultMap 정의 (mapUnderscoreToCamelCase=true 적용) -->
+    <!-- ========================================== -->
+
+    <resultMap id="DailySummaryResultMap"              type="DailySummaryResponse"              autoMapping="true"/>
+    <resultMap id="HourlySummaryResultMap"             type="HourlySummaryResponse"             autoMapping="true"/>
+    <resultMap id="StationDailyResultMap"              type="StationDailyResponse"              autoMapping="true"/>
+    <resultMap id="RouteDailyResultMap"                type="RouteDailyResponse"                autoMapping="true"/>
+    <resultMap id="LineTopStationResultMap"            type="LineTopStationResponse"            autoMapping="true"/>
+    <resultMap id="BoardingStationResultMap"           type="BoardingStationResponse"           autoMapping="true"/>
+    <resultMap id="CardDailyResultMap"                 type="CardDailyResponse"                 autoMapping="true"/>
+    <resultMap id="DayLineResultMap"                   type="DayLineResponse"                   autoMapping="true"/>
+    <resultMap id="DateTicketResultMap"                type="DateTicketResponse"                autoMapping="true"/>
+    <resultMap id="HourTicketResultMap"                type="HourTicketResponse"                autoMapping="true"/>
+
+    <resultMap id="DayOfWeekStatsResultMap"            type="DayOfWeekStatsResponse"            autoMapping="true"/>
+    <resultMap id="HourlyStatsResultMap"               type="HourlyStatsResponse"               autoMapping="true"/>
+    <resultMap id="TicketTypeStatsResultMap"           type="TicketTypeStatsResponse"           autoMapping="true"/>
+    <resultMap id="CardTypeStatsResultMap"             type="CardTypeStatsResponse"             autoMapping="true"/>
+    <resultMap id="TopBoardingStationStatsResultMap"   type="TopBoardingStationStatsResponse"   autoMapping="true"/>
+    <resultMap id="StationImbalanceStatsResultMap"     type="StationImbalanceStatsResponse"     autoMapping="true"/>
+    <resultMap id="RouteEfficiencyStatsResultMap"      type="RouteEfficiencyStatsResponse"      autoMapping="true"/>
+    <resultMap id="HourTicketCrossResultMap"           type="HourTicketCrossResponse"           autoMapping="true"/>
+    <resultMap id="FreeFareStatsResultMap"             type="FreeFareStatsResponse"             autoMapping="true"/>
+    <resultMap id="RawDataSummaryResultMap"            type="RawDataSummaryResponse"            autoMapping="true"/>
+
+    <!-- ========================================== -->
+    <!-- 기존 원본 데이터 조회                        -->
+    <!-- ========================================== -->
+
+    <select id="selectDailySummary" resultMap="DailySummaryResultMap">
+        SELECT  trade_dt,
+                day_of_week_num,
+                total_cnt,
+                boarding_cnt,
+                alighting_cnt,
+                station_cnt,
+                route_cnt,
+                total_rev,
+                avg_fare,
+                paid_cnt,
+                free_cnt,
+                paid_pct,
+                boarding_pct,
+                revenue_per_transaction,
+                avg_transactions_per_station,
+                avg_transactions_per_route
+        FROM    busan_bigdata.GENTRDT_COMP_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt
+    </select>
+
+    <select id="selectHourlySummary" resultMap="HourlySummaryResultMap">
+        SELECT  trade_dt,
+                hour_range,
+                total_cnt,
+                boarding_cnt,
+                alighting_cnt,
+                hour_usage_pct,
+                total_rev,
+                avg_fare,
+                paid_cnt,
+                free_cnt,
+                paid_pct,
+                boarding_pct,
+                revenue_share_pct
+        FROM    busan_bigdata.GENTRDT_COMP_HOURLY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, hour_range
+    </select>
+
+    <select id="selectStationDaily" resultMap="StationDailyResultMap">
+        SELECT  trade_dt,
+                station_no,
+                total_cnt,
+                boarding_cnt,
+                alighting_cnt,
+                boarding_alighting_diff_pct,
+                net_passenger_flow,
+                avg_fare,
+                total_rev,
+                paid_cnt,
+                free_cnt,
+                boarding_pct,
+                alighting_pct,
+                paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_STN_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, station_no
+    </select>
+
+    <select id="selectRouteDaily" resultMap="RouteDailyResultMap">
+        SELECT  trade_dt,
+                route_no,
+                total_cnt,
+                boarding_cnt,
+                alighting_cnt,
+                station_cnt,
+                usage_share_pct,
+                total_rev,
+                avg_fare,
+                paid_cnt,
+                free_cnt,
+                paid_pct,
+                revenue_per_transaction,
+                revenue_share_pct,
+                revenue_per_station,
+                avg_transactions_per_station,
+                boarding_alighting_ratio
+        FROM    busan_bigdata.GENTRDT_COMP_ROUTE_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, route_no
+    </select>
+
+    <select id="selectLineTopStations" resultMap="LineTopStationResultMap">
+        SELECT  trade_dt,
+                line_no,
+                station_no,
+                station_rank,
+                total_cnt,
+                boarding_cnt,
+                alighting_cnt,
+                total_rev,
+                avg_fare
+        FROM    busan_bigdata.GENTRDT_COMP_LINE_STN FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, line_no, station_rank
+    </select>
+
+    <select id="selectBoardingStations" resultMap="BoardingStationResultMap">
+        SELECT  trade_dt,
+                boarding_station_no,
+                total_boarding_cnt,
+                usage_share_pct,
+                total_rev,
+                avg_fare,
+                paid_cnt,
+                free_cnt,
+                paid_pct,
+                revenue_per_boarding,
+                revenue_share_pct
+        FROM    busan_bigdata.GENTRDT_COMP_BRD_STN_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, boarding_station_no
+    </select>
+
+    <select id="selectCardDaily" resultMap="CardDailyResultMap">
+        SELECT  trade_dt,
+                card_type,
+                total_cnt,
+                avg_fare,
+                total_rev,
+                paid_cnt,
+                free_cnt,
+                paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_CARD_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, card_type
+    </select>
+
+    <select id="selectDayLines" resultMap="DayLineResultMap">
+        SELECT  trade_dt,
+                day_of_week_num,
+                day_of_week_name,
+                line_no,
+                total_cnt,
+                boarding_cnt,
+                alighting_cnt,
+                total_rev,
+                avg_fare,
+                paid_cnt,
+                free_cnt,
+                paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_DAY_LINE FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, day_of_week_num, line_no
+    </select>
+
+    <select id="selectDateTickets" resultMap="DateTicketResultMap">
+        SELECT  trade_dt,
+                ticket_type,
+                total_cnt,
+                boarding_cnt,
+                alighting_cnt,
+                total_rev,
+                avg_fare,
+                paid_cnt,
+                free_cnt,
+                paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_DATE_TICKET FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, ticket_type
+    </select>
+
+    <select id="selectHourTickets" resultMap="HourTicketResultMap">
+        SELECT  trade_dt,
+                hour_range,
+                ticket_type,
+                boarding_cnt,
+                total_rev,
+                avg_fare
+        FROM    busan_bigdata.GENTRDT_COMP_HOUR_TICKET FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt, hour_range, ticket_type
+    </select>
+
+    <!-- ========================================== -->
+    <!-- Stats 집계 쿼리                             -->
+    <!-- ========================================== -->
+
+    <select id="selectDayOfWeekStats" resultMap="DayOfWeekStatsResultMap">
+        SELECT  day_of_week_num,
+                toInt64(round(avg(total_cnt)))    AS avg_total_cnt,
+                toInt64(round(avg(boarding_cnt))) AS avg_boarding_cnt,
+                toInt64(round(avg(total_rev)))    AS avg_total_rev,
+                toInt32(round(avg(avg_fare)))     AS avg_fare,
+                round(avg(paid_pct), 2)           AS avg_paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY day_of_week_num
+        ORDER BY day_of_week_num
+    </select>
+
+    <select id="selectHourlyStats" resultMap="HourlyStatsResultMap">
+        SELECT  hour_range,
+                sum(total_cnt)                      AS total_cnt,
+                sum(boarding_cnt)                   AS boarding_cnt,
+                sum(alighting_cnt)                  AS alighting_cnt,
+                round(avg(hour_usage_pct), 2)       AS avg_usage_pct,
+                sum(total_rev)                      AS total_rev,
+                toInt32(round(avg(avg_fare)))       AS avg_fare
+        FROM    busan_bigdata.GENTRDT_COMP_HOURLY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY hour_range
+        ORDER BY hour_range
+    </select>
+
+    <select id="selectTicketTypeStats" resultMap="TicketTypeStatsResultMap">
+        SELECT  ticket_type,
+                sum(total_cnt)                  AS total_cnt,
+                sum(boarding_cnt)               AS boarding_cnt,
+                sum(total_rev)                  AS total_rev,
+                toInt32(round(avg(avg_fare)))   AS avg_fare,
+                round(avg(paid_pct), 2)         AS avg_paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_DATE_TICKET FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY ticket_type
+        ORDER BY total_cnt DESC
+    </select>
+
+    <select id="selectCardTypeStats" resultMap="CardTypeStatsResultMap">
+        SELECT  card_type,
+                sum(total_cnt)                  AS total_cnt,
+                sum(total_rev)                  AS total_rev,
+                toInt32(round(avg(avg_fare)))   AS avg_fare,
+                round(avg(paid_pct), 2)         AS avg_paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_CARD_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY card_type
+        ORDER BY total_cnt DESC
+    </select>
+
+    <select id="selectTopBoardingStationStats" resultMap="TopBoardingStationStatsResultMap">
+        SELECT  boarding_station_no,
+                sum(total_boarding_cnt)             AS total_boarding_cnt,
+                round(avg(usage_share_pct), 2)      AS avg_usage_share_pct,
+                sum(total_rev)                      AS total_rev,
+                toInt32(round(avg(avg_fare)))       AS avg_fare,
+                round(avg(paid_pct), 2)             AS avg_paid_pct
+        FROM    busan_bigdata.GENTRDT_COMP_BRD_STN_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY boarding_station_no
+        ORDER BY total_boarding_cnt DESC
+        LIMIT 10
+    </select>
+
+    <select id="selectStationImbalanceStats" resultMap="StationImbalanceStatsResultMap">
+        SELECT  station_no,
+                sum(boarding_cnt)                           AS total_boarding_cnt,
+                sum(alighting_cnt)                          AS total_alighting_cnt,
+                sum(net_passenger_flow)                     AS net_passenger_flow,
+                round(avg(boarding_alighting_diff_pct), 2) AS avg_diff_pct
+        FROM    busan_bigdata.GENTRDT_COMP_STN_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY station_no
+        ORDER BY abs(net_passenger_flow) DESC
+        LIMIT 10
+    </select>
+
+    <select id="selectRouteEfficiencyStats" resultMap="RouteEfficiencyStatsResultMap">
+        SELECT  route_no,
+                sum(total_cnt)                                  AS total_cnt,
+                sum(total_rev)                                  AS total_rev,
+                round(avg(revenue_per_transaction), 2)          AS avg_rev_per_transaction,
+                round(avg(revenue_per_station), 2)              AS avg_rev_per_station,
+                round(avg(avg_transactions_per_station), 2)     AS avg_trans_per_station,
+                round(avg(boarding_alighting_ratio), 2)         AS avg_board_alight_ratio
+        FROM    busan_bigdata.GENTRDT_COMP_ROUTE_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY route_no
+        ORDER BY total_cnt DESC
+        LIMIT 20
+    </select>
+
+    <select id="selectHourTicketCrossStats" resultMap="HourTicketCrossResultMap">
+        SELECT  hour_range,
+                ticket_type,
+                sum(boarding_cnt)               AS boarding_cnt,
+                sum(total_rev)                  AS total_rev,
+                toInt32(round(avg(avg_fare)))   AS avg_fare
+        FROM    busan_bigdata.GENTRDT_COMP_HOUR_TICKET FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        GROUP BY hour_range, ticket_type
+        ORDER BY hour_range, ticket_type
+    </select>
+
+    <select id="selectFreeFareStats" resultMap="FreeFareStatsResultMap">
+        SELECT  trade_dt,
+                paid_cnt,
+                free_cnt,
+                round(toFloat64(free_cnt) / toFloat64(paid_cnt + free_cnt) * 100, 2) AS free_pct
+        FROM    busan_bigdata.GENTRDT_COMP_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
+        ORDER BY trade_dt
+    </select>
+
+    <select id="selectRawDataSummary" resultMap="RawDataSummaryResultMap">
+        SELECT  count(*)                AS total_cnt,
+                countDistinct(TRDTRDT)  AS trade_date_cnt,
+                countDistinct(TRDSNO)   AS station_cnt,
+                countDistinct(TRDRID)   AS route_cnt,
+                countDistinct(TRDCNO)   AS card_cnt
+        FROM    busan_bigdata.comp_raw
+        WHERE   TRDTRDT BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+</mapper>
