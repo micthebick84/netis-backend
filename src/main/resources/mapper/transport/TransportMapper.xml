@@ -330,13 +330,13 @@
     </select>
 
     <select id="selectRawDataSummary" resultMap="RawDataSummaryResultMap">
-        SELECT  count(*)                AS total_cnt,
-                countDistinct(TRDTRDT)  AS trade_date_cnt,
-                countDistinct(TRDSNO)   AS station_cnt,
-                countDistinct(TRDRID)   AS route_cnt,
-                countDistinct(TRDCNO)   AS card_cnt
-        FROM    busan_bigdata.comp_raw
-        WHERE   TRDTRDT BETWEEN #{startDate} AND #{endDate}
+        SELECT  sum(total_cnt)                          AS total_cnt,
+                count(*)                                AS trade_date_cnt,
+                toInt64(max(station_cnt))                AS station_cnt,
+                toInt64(max(route_cnt))                  AS route_cnt,
+                sum(paid_cnt + free_cnt)                 AS card_cnt
+        FROM    busan_bigdata.GENTRDT_COMP_DAILY FINAL
+        WHERE   trade_dt BETWEEN #{startDate} AND #{endDate}
     </select>
 
 </mapper>

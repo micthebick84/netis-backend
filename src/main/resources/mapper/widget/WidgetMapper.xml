@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.widget.WidgetMapper">
+
+    <resultMap id="boardResultMap" type="com.example.netisbackend.dto.widget.WidgetBoardDto">
+        <result property="boardNo"    column="board_no"/>
+        <result property="pageKey"    column="page_key"/>
+        <result property="userId"     column="user_id"/>
+        <result property="createdAt"  column="created_at"/>
+        <result property="updatedAt"  column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="itemResultMap" type="com.example.netisbackend.dto.widget.WidgetItemDto">
+        <result property="itemNo"       column="item_no"/>
+        <result property="boardNo"      column="board_no"/>
+        <result property="itemTitle"    column="item_title"/>
+        <result property="chartType"    column="chart_type"/>
+        <result property="gridX"        column="grid_x"/>
+        <result property="gridY"        column="grid_y"/>
+        <result property="gridW"        column="grid_w"/>
+        <result property="gridH"        column="grid_h"/>
+        <result property="xAxisField"   column="x_axis_field"/>
+        <result property="yAxisFields"  column="y_axis_fields"/>
+        <result property="dataApi"      column="data_api"/>
+        <result property="sortOrder"    column="sort_order"/>
+        <result property="createdAt"    column="created_at"/>
+        <result property="updatedAt"    column="updated_at"/>
+    </resultMap>
+
+    <select id="selectBoard" resultMap="boardResultMap">
+        SELECT board_no, page_key, user_id, created_at, updated_at
+        FROM   bd_widget_board
+        WHERE  page_key = #{pageKey}
+        AND    user_id  = #{userId}
+    </select>
+
+    <insert id="insertBoard" useGeneratedKeys="true" keyProperty="boardNo">
+        INSERT INTO bd_widget_board (page_key, user_id, created_at, updated_at)
+        VALUES (#{pageKey}, #{userId}, NOW(), NOW())
+    </insert>
+
+    <update id="updateBoardTimestamp">
+        UPDATE bd_widget_board
+        SET    updated_at = NOW()
+        WHERE  board_no = #{boardNo}
+    </update>
+
+    <select id="selectItems" resultMap="itemResultMap">
+        SELECT item_no, board_no, item_title, chart_type,
+               grid_x, grid_y, grid_w, grid_h,
+               x_axis_field, y_axis_fields, data_api,
+               sort_order, created_at, updated_at
+        FROM   bd_widget_item
+        WHERE  board_no = #{boardNo}
+        ORDER  BY sort_order, item_no
+    </select>
+
+    <insert id="insertItem" useGeneratedKeys="true" keyProperty="itemNo">
+        INSERT INTO bd_widget_item
+               (board_no, item_title, chart_type,
+                grid_x, grid_y, grid_w, grid_h,
+                x_axis_field, y_axis_fields, data_api,
+                sort_order, created_at, updated_at)
+        VALUES (#{boardNo}, #{itemTitle}, #{chartType},
+                #{gridX}, #{gridY}, #{gridW}, #{gridH},
+                #{xAxisField}, #{yAxisFields}, #{dataApi},
+                #{sortOrder}, NOW(), NOW())
+    </insert>
+
+    <update id="updateItem">
+        UPDATE bd_widget_item
+        SET    item_title    = #{itemTitle},
+               chart_type    = #{chartType},
+               grid_x        = #{gridX},
+               grid_y        = #{gridY},
+               grid_w        = #{gridW},
+               grid_h        = #{gridH},
+               x_axis_field  = #{xAxisField},
+               y_axis_fields = #{yAxisFields},
+               data_api      = #{dataApi},
+               sort_order    = #{sortOrder},
+               updated_at    = NOW()
+        WHERE  item_no = #{itemNo}
+    </update>
+
+    <delete id="deleteItem">
+        DELETE FROM bd_widget_item WHERE item_no = #{itemNo}
+    </delete>
+
+    <delete id="deleteItemsByBoardNo">
+        DELETE FROM bd_widget_item WHERE board_no = #{boardNo}
+    </delete>
+
+</mapper>

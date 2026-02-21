@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -97,9 +96,7 @@ public class TransportAnalyticsService {
     }
 
     public RawDataSummaryResponse getRawDataSummary(LocalDate startDate, LocalDate endDate) {
-        String startStr = startDate.format(DateTimeFormatter.BASIC_ISO_DATE);
-        String endStr = endDate.format(DateTimeFormatter.BASIC_ISO_DATE);
-        RawDataSummaryResponse result = transportMapper.selectRawDataSummary(startStr, endStr);
+        RawDataSummaryResponse result = transportMapper.selectRawDataSummary(startDate, endDate);
         return result != null ? result
                 : RawDataSummaryResponse.builder()
                         .totalCnt(0L).tradeDateCnt(0L).stationCnt(0L).routeCnt(0L).cardCnt(0L)

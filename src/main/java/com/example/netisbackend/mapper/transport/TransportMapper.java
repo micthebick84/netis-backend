@@ -110,9 +110,8 @@ public interface TransportMapper {
         @Param("endDate") LocalDate endDate
     );
 
-    // comp_raw의 TRDTRDT는 String(YYYYMMDD) 형식
     RawDataSummaryResponse selectRawDataSummary(
-        @Param("startDate") String startDate,
-        @Param("endDate") String endDate
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
     );
 }
