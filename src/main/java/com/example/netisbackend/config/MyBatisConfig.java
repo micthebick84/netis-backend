@@ -3,6 +3,7 @@ package com.example.netisbackend.config;
 import com.example.netisbackend.mapper.MenuMapper;
 import com.example.netisbackend.mapper.MenuMgmtMapper;
 import com.example.netisbackend.mapper.widget.WidgetMapper;
+import com.example.netisbackend.mapper.userconf.UserConfMapper;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.SqlSessionTemplate;
@@ -20,7 +21,7 @@ import java.util.List;
 
 @Configuration
 @MapperScan(
-    basePackageClasses = {MenuMapper.class, MenuMgmtMapper.class, WidgetMapper.class},
+    basePackageClasses = {MenuMapper.class, MenuMgmtMapper.class, WidgetMapper.class, UserConfMapper.class},
     sqlSessionFactoryRef = "mybatisSqlSessionFactory"
 )
 public class MyBatisConfig {
@@ -34,10 +35,12 @@ public class MyBatisConfig {
         List<Resource> resources = new ArrayList<>();
         resources.addAll(Arrays.asList(resolver.getResources("classpath:mapper/menu/*.xml")));
         resources.addAll(Arrays.asList(resolver.getResources("classpath:mapper/widget/*.xml")));
+        resources.addAll(Arrays.asList(resolver.getResources("classpath:mapper/userconf/*.xml")));
         factoryBean.setMapperLocations(resources.toArray(new Resource[0]));
         factoryBean.setTypeAliasesPackage(
             "com.example.netisbackend.dto.menu," +
-            "com.example.netisbackend.dto.widget"
+            "com.example.netisbackend.dto.widget," +
+            "com.example.netisbackend.dto.userconf"
         );
 
         org.apache.ibatis.session.Configuration config =

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.userconf.UserConfMapper">
+
+    <resultMap id="userResultMap" type="com.example.netisbackend.dto.userconf.UserConfDto">
+        <result property="userId"       column="user_id"/>
+        <result property="userName"     column="user_name"/>
+        <result property="deptName"     column="dept_name"/>
+        <result property="cellTel"      column="cell_tel"/>
+        <result property="email"        column="email"/>
+        <result property="userPcIp"     column="user_pc_ip"/>
+        <result property="account"      column="account"/>
+        <result property="useFlag"      column="use_flag"/>
+        <result property="isRecvSms"    column="is_recv_sms"/>
+        <result property="isRecvEmail"  column="is_recv_email"/>
+        <result property="auth"         column="auth"/>
+        <result property="passDate"     column="pass_date"/>
+        <result property="passChgDate"  column="pass_chg_date"/>
+    </resultMap>
+
+    <select id="selectUserList" resultMap="userResultMap">
+        SELECT user_id, user_name, dept_name, cell_tel, email,
+               user_pc_ip, account, use_flag, is_recv_sms, is_recv_email,
+               auth, pass_date, pass_chg_date
+        FROM   com_user
+        ORDER  BY user_id
+    </select>
+
+    <select id="selectUserById" resultMap="userResultMap">
+        SELECT user_id, user_name, dept_name, cell_tel, email,
+               user_pc_ip, account, use_flag, is_recv_sms, is_recv_email,
+               auth, pass_date, pass_chg_date
+        FROM   com_user
+        WHERE  user_id = #{userId}
+    </select>
+
+    <insert id="insertUser">
+        INSERT INTO com_user (
+            user_id, password, pw_salt, user_name, dept_name,
+            cell_tel, email, user_pc_ip, use_flag,
+            is_recv_sms, is_recv_email, auth, pass_chg_date
+        ) VALUES (
+            #{userId}, #{password}, #{pwSalt}, #{userName}, #{deptName},
+            #{cellTel}, #{email}, #{userPcIp}, #{useFlag},
+            #{isRecvSms}, #{isRecvEmail}, #{auth}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="updateUser">
+        UPDATE com_user
+        SET    user_name     = #{userName},
+               dept_name     = #{deptName},
+               cell_tel      = #{cellTel},
+               email         = #{email},
+               user_pc_ip    = #{userPcIp},
+               use_flag      = #{useFlag},
+               is_recv_sms   = #{isRecvSms},
+               is_recv_email = #{isRecvEmail},
+               auth          = #{auth}
+        WHERE  user_id = #{userId}
+    </update>
+
+    <delete id="deleteUser">
+        DELETE FROM com_user WHERE user_id = #{userId}
+    </delete>
+
+    <update id="updatePassword">
+        UPDATE com_user
+        SET    password      = #{hashedPassword},
+               pw_salt       = #{salt},
+               pass_chg_date = CURRENT_TIMESTAMP
+        WHERE  user_id = #{userId}
+    </update>
+
+</mapper>
