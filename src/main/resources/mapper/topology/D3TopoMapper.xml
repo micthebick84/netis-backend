@@ -12,7 +12,7 @@
         <result property="grpName" column="grp_name"/>
         <result property="grpParent" column="grp_parent"/>
         <result property="grpParentNm" column="grp_parent_nm"/>
-        <result property="isShare" column="isshare"/>
+        <result property="isShare" column="is_share"/>
         <result property="parentId" column="parent_id"/>
         <result property="userId" column="user_id"/>
         <result property="cnt" column="cnt"/>
@@ -154,7 +154,7 @@
     <select id="selectMapTopGrpInfo" resultMap="resultMapTopGrpInfo">
         <choose>
             <when test="isshare == 1">
-                SELECT grp_no, cnt, #{isshare} AS isshare,
+                SELECT grp_no, cnt, #{isshare} AS is_share,
                        (SELECT grp_parent FROM cm_topo_group WHERE user_id = T.user_id AND grp_no = T.grp_no) AS grp_parent,
                        (SELECT grp_name FROM cm_topo_group WHERE user_id = T.user_id AND grp_no = T.grp_no) AS grp_name,
                        (SELECT grp_name FROM cm_topo_group WHERE user_id = T.user_id
@@ -168,19 +168,19 @@
                 ) T
             </when>
             <otherwise>
-                SELECT grp_no, cnt, isshare, parent_id, user_id,
+                SELECT grp_no, cnt, is_share, parent_id, user_id,
                        (SELECT grp_parent FROM cm_topo_group WHERE user_id = #{userId} AND grp_no = T.grp_no) AS grp_parent,
                        (SELECT grp_name FROM cm_topo_group WHERE user_id = #{userId} AND grp_no = T.grp_no) AS grp_name,
                        (SELECT grp_name FROM cm_topo_group WHERE user_id = #{userId}
                             AND grp_no = (SELECT grp_parent FROM cm_topo_group WHERE grp_no = T.grp_no AND user_id = #{userId})) AS grp_parent_nm
                 FROM (
-                    SELECT MIN(A1.grp_no) AS grp_no, COUNT(*) AS cnt, U1.isshare, U1.parent_id, U1.user_id
+                    SELECT MIN(A1.grp_no) AS grp_no, COUNT(*) AS cnt, U1.is_share, U1.parent_id, U1.user_id
                     FROM   cm_topo_group A1
                     INNER JOIN cm_topo_leaf B1 ON A1.user_id = B1.user_id AND A1.grp_no = B1.grp_no
                     INNER JOIN com_user U1 ON A1.user_id = U1.user_id
                     WHERE  A1.user_id = #{userId}
                     AND    B1.sub_no NOT IN (SELECT DISTINCT sub_no FROM cm_topo_leaf WHERE user_id = #{userId} AND grp_no != sub_no)
-                    GROUP BY U1.isshare, U1.parent_id, U1.user_id
+                    GROUP BY U1.is_share, U1.parent_id, U1.user_id
                 ) T
             </otherwise>
         </choose>
@@ -190,7 +190,7 @@
     <select id="selectTopoIsShareGrpList" resultMap="resultMapTopGrpInfo">
         SELECT A1.grp_no, A1.grp_name, A1.grp_parent,
                (SELECT grp_name FROM cm_topo_group WHERE user_id = A1.user_id AND grp_no = A1.grp_parent) AS grp_parent_nm,
-               U1.isshare, U1.parent_id, U1.user_id,
+               U1.is_share, U1.parent_id, U1.user_id,
                A1.grp_name AS item_name,
                I1.item_no, I1.mng_no, I1.dev_kind1, I1.dev_kind2, I1.usr_kind, I1.item_alias,
                COALESCE(I1.item_size, 3) AS item_size,
@@ -681,7 +681,7 @@
         FROM   cm_topo_group CTG
         INNER JOIN (
             WITH RECURSIVE CTE AS (
-                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS VARCHAR(200)) AS path_name
+                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS TEXT) AS path_name
                 FROM cm_topo_group
                 WHERE grp_no = (SELECT grp_no FROM cm_topo_group
                                 WHERE grp_parent = 0 AND user_id = <include refid="selectMapUserId"/>)
@@ -740,7 +740,7 @@
         INNER JOIN (SELECT * FROM tb_com_evtcode WHERE profile_no = 0) EVTCD ON EVT.code = EVTCD.evt_cd
         INNER JOIN (
             WITH RECURSIVE CTE AS (
-                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS VARCHAR(200)) AS path_name
+                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS TEXT) AS path_name
                 FROM cm_topo_group WHERE grp_no = #{grpNo} AND user_id = <include refid="selectMapUserId"/>
                 UNION ALL
                 SELECT a.grp_no, a.grp_name, a.grp_parent, CONCAT(b.path_name, ' > ', a.grp_name)
@@ -807,7 +807,7 @@
         INNER JOIN (SELECT * FROM tb_com_evtcode WHERE profile_no = 0) EVTCD ON EVT.code = EVTCD.evt_cd
         INNER JOIN (
             WITH RECURSIVE CTE AS (
-                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS VARCHAR(200)) AS path_name
+                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS TEXT) AS path_name
                 FROM cm_topo_group WHERE grp_no = #{grpNo} AND user_id = <include refid="selectMapUserId"/>
                 UNION ALL
                 SELECT a.grp_no, a.grp_name, a.grp_parent, CONCAT(b.path_name, ' > ', a.grp_name)

@@ -247,7 +247,7 @@
 
     <!-- 맵 사용자ID 조회 -->
     <select id="selectMapId" resultType="String">
-        SELECT CASE WHEN isshare = 1 THEN parent_id ELSE user_id END
+        SELECT CASE WHEN is_share = 1 THEN parent_id ELSE user_id END
         FROM com_user
         WHERE user_id = #{userId}
     </select>
