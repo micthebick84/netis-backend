@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.RackTopoMapper">
+
+    <!-- ========================================== -->
+    <!-- Rack Topology Mapper (PostgreSQL)          -->
+    <!-- ========================================== -->
+
+    <!-- ResultMap definitions -->
+    <resultMap id="resultTopoRackGrpInfo" type="com.example.netisbackend.dto.topology.MapTopoGrpDto" autoMapping="true">
+        <result property="grpNo"        column="grp_no"/>
+        <result property="grpParent"    column="grp_parent"/>
+        <result property="grpParentNm"  column="grp_parent_nm"/>
+        <result property="grpName"      column="grp_name"/>
+        <result property="bgFileNm"     column="bg_file_nm"/>
+        <result property="viewType"     column="view_type"/>
+        <result property="evtLevelCnt1" column="evt_level_cnt1"/>
+        <result property="evtLevelCnt2" column="evt_level_cnt2"/>
+        <result property="evtLevelCnt3" column="evt_level_cnt3"/>
+        <result property="evtLevelCnt4" column="evt_level_cnt4"/>
+        <result property="evtLevelCnt5" column="evt_level_cnt5"/>
+        <result property="pathName"     column="path_name"/>
+    </resultMap>
+
+    <resultMap id="resultTopoRack" type="com.example.netisbackend.dto.topology.TopoRackDto" autoMapping="true">
+        <result property="grpNo"      column="grp_no"/>
+        <result property="itemNo"     column="item_no"/>
+        <result property="rackNo"     column="rack_no"/>
+        <result property="rackName"   column="rack_name"/>
+        <result property="rackType"   column="rack_type"/>
+        <result property="xPoint"     column="x_point"/>
+        <result property="yPoint"     column="y_point"/>
+        <result property="rackUnit"   column="rack_u"/>
+        <result property="rackWidth"  column="width"/>
+        <result property="rackHeight" column="height"/>
+        <result property="ymd"        column="yyyymmdd"/>
+        <result property="rackDesc"   column="rack_desc"/>
+        <result property="rackIp"     column="rack_ip"/>
+        <result property="rackPort"   column="rack_port"/>
+        <result property="model"      column="model"/>
+        <result property="vendor"     column="vendor"/>
+        <result property="evtLevel"   column="evt_level"/>
+    </resultMap>
+
+    <resultMap id="resultTopoRackSlot" type="com.example.netisbackend.dto.topology.TopoRackSlotDto" autoMapping="true">
+        <result property="rackNo"      column="rack_no"/>
+        <result property="rackSection" column="rack_section"/>
+        <result property="slotNo"      column="slot_no"/>
+        <result property="slotU"       column="slot_u"/>
+        <result property="grpName"     column="grp_name"/>
+        <result property="mngNo"       column="mng_no"/>
+        <result property="devName"     column="dev_name"/>
+        <result property="devIp"       column="dev_ip"/>
+        <result property="devKind1"    column="dev_kind1"/>
+        <result property="devKind2"    column="dev_kind2"/>
+        <result property="vendor"      column="vendor"/>
+        <result property="model"       column="model"/>
+        <result property="evtLevel"    column="evt_level"/>
+        <result property="imgName"     column="img_name"/>
+        <result property="slotKind"    column="slot_kind"/>
+    </resultMap>
+
+    <resultMap id="resultTopoRackSensor" type="com.example.netisbackend.dto.topology.TopoRackSensorDto" autoMapping="true">
+        <result property="rackNo"         column="rack_no"/>
+        <result property="rackName"       column="rack_name"/>
+        <result property="grpNo"          column="grp_no"/>
+        <result property="grpName"        column="grp_name"/>
+        <result property="fmsSeqNo"       column="fms_seq_no"/>
+        <result property="mngNo"          column="mng_no"/>
+        <result property="sensorId"       column="sensor_id"/>
+        <result property="sensorName"     column="sensor_name"/>
+        <result property="sensorKind"     column="sensor_kind"/>
+        <result property="xPoint"         column="x_point"/>
+        <result property="yPoint"         column="y_point"/>
+        <result property="evtLevel"       column="evt_level"/>
+        <result property="evtLevelStr"    column="evt_level_str"/>
+        <result property="evtLevelColor"  column="evt_level_color"/>
+        <result property="sensorValue"    column="sensor_value"/>
+    </resultMap>
+
+    <!-- ========================================== -->
+    <!-- 1. selectTopoRackGrpList                   -->
+    <!--    Rack groups with event level counts      -->
+    <!--    Uses recursive CTE for group hierarchy   -->
+    <!-- ========================================== -->
+    <select id="selectTopoRackGrpList" resultMap="resultTopoRackGrpInfo">
+        WITH RECURSIVE grp_tree AS (
+            <!-- Base case: start from the specified group or root -->
+            SELECT g.grp_no,
+                   g.grp_parent,
+                   g.grp_name,
+                   g.bg_file_nm,
+                   g.view_type,
+                   CAST(g.grp_name AS VARCHAR(1000)) AS path_name
+            FROM   cm_topo_group g
+            WHERE  g.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+            <if test="grpNo != null">
+                AND g.grp_no = #{grpNo}
+            </if>
+            <if test="grpNo == null">
+                AND g.grp_parent = 0
+            </if>
+
+            UNION ALL
+
+            <!-- Recursive: traverse child groups -->
+            SELECT cg.grp_no,
+                   cg.grp_parent,
+                   cg.grp_name,
+                   cg.bg_file_nm,
+                   cg.view_type,
+                   CAST(gt.path_name || ' > ' || cg.grp_name AS VARCHAR(1000)) AS path_name
+            FROM   grp_tree gt
+                   INNER JOIN cm_topo_group cg
+                       ON cg.grp_parent = gt.grp_no
+                       AND cg.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+            WHERE  cg.grp_no != cg.grp_parent
+        )
+        SELECT gt.grp_no,
+               gt.grp_parent,
+               pg.grp_name AS grp_parent_nm,
+               gt.grp_name,
+               gt.bg_file_nm,
+               gt.view_type,
+               gt.path_name,
+               COALESCE(evt.evt_level_cnt1, 0) AS evt_level_cnt1,
+               COALESCE(evt.evt_level_cnt2, 0) AS evt_level_cnt2,
+               COALESCE(evt.evt_level_cnt3, 0) AS evt_level_cnt3,
+               COALESCE(evt.evt_level_cnt4, 0) AS evt_level_cnt4,
+               COALESCE(evt.evt_level_cnt5, 0) AS evt_level_cnt5
+        FROM   grp_tree gt
+               LEFT JOIN cm_topo_group pg
+                   ON gt.grp_parent = pg.grp_no
+                   AND pg.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+               LEFT JOIN (
+                   SELECT ti.grp_no,
+                          SUM(CASE WHEN e.evt_level = 1 THEN 1 ELSE 0 END) AS evt_level_cnt1,
+                          SUM(CASE WHEN e.evt_level = 2 THEN 1 ELSE 0 END) AS evt_level_cnt2,
+                          SUM(CASE WHEN e.evt_level = 3 THEN 1 ELSE 0 END) AS evt_level_cnt3,
+                          SUM(CASE WHEN e.evt_level = 4 THEN 1 ELSE 0 END) AS evt_level_cnt4,
+                          SUM(CASE WHEN e.evt_level = 5 THEN 1 ELSE 0 END) AS evt_level_cnt5
+                   FROM   cm_topo_item ti
+                          INNER JOIN cm_evt e ON ti.mng_no = e.mng_no
+                   WHERE  ti.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+                          AND e.evt_level > 0
+                          AND e.evt_end_date IS NULL
+                   GROUP BY ti.grp_no
+               ) evt ON gt.grp_no = evt.grp_no
+        ORDER BY gt.grp_name
+    </select>
+
+    <!-- ========================================== -->
+    <!-- 2. selectTopoRackList                      -->
+    <!--    Rack topology items from CM_TOPO_ITEM   -->
+    <!--    joined with S_CM_RACK                   -->
+    <!-- ========================================== -->
+    <select id="selectTopoRackList" resultMap="resultTopoRack">
+        SELECT ti.grp_no,
+               ti.item_no,
+               r.rack_no,
+               r.rack_name,
+               r.rack_type,
+               COALESCE(r.x_point, 0) AS x_point,
+               COALESCE(r.y_point, 0) AS y_point,
+               COALESCE(r.rack_u, 42) AS rack_u,
+               COALESCE(r.width, '600') AS width,
+               COALESCE(r.height, '2000') AS height,
+               COALESCE(r.yyyymmdd, TO_CHAR(NOW(), 'YYYYMMDD')) AS yyyymmdd,
+               r.rack_desc,
+               r.rack_ip,
+               r.rack_port,
+               COALESCE(r.model, '') AS model,
+               COALESCE(r.vendor, '') AS vendor,
+               COALESCE(r.evt_level, 0) AS evt_level
+        FROM   cm_topo_item ti
+               INNER JOIN s_cm_rack r ON ti.mng_no = r.rack_no
+        WHERE  ti.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+               AND ti.grp_no = #{grpNo}
+               AND ti.dev_kind1 = 'RACK'
+        ORDER BY r.rack_name
+    </select>
+
+    <!-- ========================================== -->
+    <!-- 3. selectTopoRackSlotList                  -->
+    <!--    Rack slot configurations with device    -->
+    <!--    info and event data                     -->
+    <!-- ========================================== -->
+    <select id="selectTopoRackSlotList" resultMap="resultTopoRackSlot">
+        SELECT rc.rack_no,
+               rc.rack_section,
+               rc.slot_no,
+               COALESCE(rc.slot_u, 1) AS slot_u,
+               dg.grp_name,
+               COALESCE(rc.mng_no, 0) AS mng_no,
+               COALESCE(d.dev_name, '') AS dev_name,
+               COALESCE(d.dev_ip, '') AS dev_ip,
+               COALESCE(rc.dev_kind1, d.dev_kind1, '') AS dev_kind1,
+               COALESCE(d.dev_kind2, '') AS dev_kind2,
+               COALESCE(d.vendor, '') AS vendor,
+               COALESCE(d.model, '') AS model,
+               COALESCE(rc.img_name, '') AS img_name,
+               COALESCE(rc.slot_kind, 'SVR') AS slot_kind,
+               COALESCE(
+                   (SELECT CAST(MAX(e.evt_level) AS VARCHAR)
+                    FROM   cm_evt e
+                    WHERE  e.mng_no = rc.mng_no
+                           AND e.evt_level > 0
+                           AND e.evt_end_date IS NULL),
+                   '0'
+               ) AS evt_level
+        FROM   s_cm_rack_conf rc
+               LEFT JOIN cm_dev10 d ON rc.mng_no = d.mng_no
+               LEFT JOIN (
+                   SELECT g.grp_no, g.grp_name, dd.mng_no
+                   FROM   cm_dev10 dd
+                          INNER JOIN nt_cfg_group g ON dd.grp_no = g.grp_no
+               ) dg ON rc.mng_no = dg.mng_no
+        WHERE  rc.rack_no = #{rackNo}
+        ORDER BY rc.rack_section, rc.slot_no
+    </select>
+
+    <!-- ========================================== -->
+    <!-- 4. selectTopoRacKSensorList                -->
+    <!--    Rack sensor data with performance       -->
+    <!--    values and value code lookups            -->
+    <!-- ========================================== -->
+    <select id="selectTopoRacKSensorList" resultMap="resultTopoRackSensor">
+        SELECT s.rack_no,
+               r.rack_name,
+               0 AS grp_no,
+               '' AS grp_name,
+               s.fms_seq_no,
+               s.mng_no,
+               s.sensor_id,
+               s.sensor_name,
+               s.sensor_kind,
+               COALESCE(s.x_point, 0) AS x_point,
+               COALESCE(s.y_point, 0) AS y_point,
+               COALESCE(
+                   (SELECT CAST(MAX(e.evt_level) AS VARCHAR)
+                    FROM   cm_evt e
+                    WHERE  e.mng_no = s.mng_no
+                           AND e.evt_level > 0
+                           AND e.evt_end_date IS NULL),
+                   '0'
+               ) AS evt_level,
+               COALESCE(
+                   (SELECT vc.val_name
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e2.evt_level) AS VARCHAR)
+                                FROM   cm_evt e2
+                                WHERE  e2.mng_no = s.mng_no
+                                       AND e2.evt_level > 0
+                                       AND e2.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   'Normal'
+               ) AS evt_level_str,
+               COALESCE(
+                   (SELECT vc.val_opt1
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e3.evt_level) AS VARCHAR)
+                                FROM   cm_evt e3
+                                WHERE  e3.mng_no = s.mng_no
+                                       AND e3.evt_level > 0
+                                       AND e3.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   '#00AA00'
+               ) AS evt_level_color,
+               COALESCE(
+                   (SELECT CAST(p.sensor_value AS VARCHAR)
+                    FROM   cm_fms_perf p
+                    WHERE  p.mng_no = s.mng_no
+                           AND p.sensor_id = s.sensor_id
+                           AND p.perf_date >= CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+                    ORDER BY p.perf_date DESC
+                    LIMIT 1),
+                   ''
+               ) AS sensor_value
+        FROM   cm_fms_sensor s
+               INNER JOIN s_cm_rack r ON s.rack_no = r.rack_no
+        WHERE  s.rack_no = #{rackNo}
+        ORDER BY s.sensor_id
+    </select>
+
+    <!-- ========================================== -->
+    <!-- 5. selectTopoGrpSensorList                 -->
+    <!--    Group-level sensor data, joined with    -->
+    <!--    CM_TOPO_ITEM and CM_TOPO_GROUP          -->
+    <!-- ========================================== -->
+    <select id="selectTopoGrpSensorList" resultMap="resultTopoRackSensor">
+        SELECT 0 AS rack_no,
+               '' AS rack_name,
+               ti.grp_no,
+               g.grp_name,
+               s.fms_seq_no,
+               s.mng_no,
+               s.sensor_id,
+               s.sensor_name,
+               s.sensor_kind,
+               COALESCE(s.x_point, 0) AS x_point,
+               COALESCE(s.y_point, 0) AS y_point,
+               COALESCE(
+                   (SELECT CAST(MAX(e.evt_level) AS VARCHAR)
+                    FROM   cm_evt e
+                    WHERE  e.mng_no = s.mng_no
+                           AND e.evt_level > 0
+                           AND e.evt_end_date IS NULL),
+                   '0'
+               ) AS evt_level,
+               COALESCE(
+                   (SELECT vc.val_name
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e2.evt_level) AS VARCHAR)
+                                FROM   cm_evt e2
+                                WHERE  e2.mng_no = s.mng_no
+                                       AND e2.evt_level > 0
+                                       AND e2.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   'Normal'
+               ) AS evt_level_str,
+               COALESCE(
+                   (SELECT vc.val_opt1
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e3.evt_level) AS VARCHAR)
+                                FROM   cm_evt e3
+                                WHERE  e3.mng_no = s.mng_no
+                                       AND e3.evt_level > 0
+                                       AND e3.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   '#00AA00'
+               ) AS evt_level_color,
+               COALESCE(
+                   (SELECT CAST(p.sensor_value AS VARCHAR)
+                    FROM   cm_fms_perf p
+                    WHERE  p.mng_no = s.mng_no
+                           AND p.sensor_id = s.sensor_id
+                           AND p.perf_date >= CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+                    ORDER BY p.perf_date DESC
+                    LIMIT 1),
+                   ''
+               ) AS sensor_value
+        FROM   cm_fms_sensor s
+               INNER JOIN cm_topo_item ti ON s.mng_no = ti.mng_no
+               INNER JOIN cm_topo_group g ON ti.grp_no = g.grp_no
+                   AND g.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+        WHERE  ti.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+               AND ti.grp_no = #{grpNo}
+        ORDER BY s.sensor_id
+    </select>
+
+    <!-- ========================================== -->
+    <!-- 6. selectTopoSensorList                    -->
+    <!--    Combined rack and group sensor data     -->
+    <!--    with UNION ALL                          -->
+    <!-- ========================================== -->
+    <select id="selectTopoSensorList" resultMap="resultTopoRackSensor">
+        <!-- Rack-level sensors -->
+        SELECT s.rack_no,
+               r.rack_name,
+               0 AS grp_no,
+               '' AS grp_name,
+               s.fms_seq_no,
+               s.mng_no,
+               s.sensor_id,
+               s.sensor_name,
+               s.sensor_kind,
+               COALESCE(s.x_point, 0) AS x_point,
+               COALESCE(s.y_point, 0) AS y_point,
+               COALESCE(
+                   (SELECT CAST(MAX(e.evt_level) AS VARCHAR)
+                    FROM   cm_evt e
+                    WHERE  e.mng_no = s.mng_no
+                           AND e.evt_level > 0
+                           AND e.evt_end_date IS NULL),
+                   '0'
+               ) AS evt_level,
+               COALESCE(
+                   (SELECT vc.val_name
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e2.evt_level) AS VARCHAR)
+                                FROM   cm_evt e2
+                                WHERE  e2.mng_no = s.mng_no
+                                       AND e2.evt_level > 0
+                                       AND e2.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   'Normal'
+               ) AS evt_level_str,
+               COALESCE(
+                   (SELECT vc.val_opt1
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e3.evt_level) AS VARCHAR)
+                                FROM   cm_evt e3
+                                WHERE  e3.mng_no = s.mng_no
+                                       AND e3.evt_level > 0
+                                       AND e3.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   '#00AA00'
+               ) AS evt_level_color,
+               COALESCE(
+                   (SELECT CAST(p.sensor_value AS VARCHAR)
+                    FROM   cm_fms_perf p
+                    WHERE  p.mng_no = s.mng_no
+                           AND p.sensor_id = s.sensor_id
+                           AND p.perf_date >= CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+                    ORDER BY p.perf_date DESC
+                    LIMIT 1),
+                   ''
+               ) AS sensor_value
+        FROM   cm_fms_sensor s
+               INNER JOIN s_cm_rack r ON s.rack_no = r.rack_no
+        WHERE  s.rack_no IN (
+                   SELECT r2.rack_no
+                   FROM   cm_topo_item ti2
+                          INNER JOIN s_cm_rack r2 ON ti2.mng_no = r2.rack_no
+                   WHERE  ti2.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+                          AND ti2.grp_no = #{grpNo}
+                          AND ti2.dev_kind1 = 'RACK'
+               )
+
+        UNION ALL
+
+        <!-- Group-level sensors -->
+        SELECT 0 AS rack_no,
+               '' AS rack_name,
+               ti.grp_no,
+               g.grp_name,
+               s.fms_seq_no,
+               s.mng_no,
+               s.sensor_id,
+               s.sensor_name,
+               s.sensor_kind,
+               COALESCE(s.x_point, 0) AS x_point,
+               COALESCE(s.y_point, 0) AS y_point,
+               COALESCE(
+                   (SELECT CAST(MAX(e.evt_level) AS VARCHAR)
+                    FROM   cm_evt e
+                    WHERE  e.mng_no = s.mng_no
+                           AND e.evt_level > 0
+                           AND e.evt_end_date IS NULL),
+                   '0'
+               ) AS evt_level,
+               COALESCE(
+                   (SELECT vc.val_name
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e2.evt_level) AS VARCHAR)
+                                FROM   cm_evt e2
+                                WHERE  e2.mng_no = s.mng_no
+                                       AND e2.evt_level > 0
+                                       AND e2.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   'Normal'
+               ) AS evt_level_str,
+               COALESCE(
+                   (SELECT vc.val_opt1
+                    FROM   cm_val_code vc
+                    WHERE  vc.val_kind = 'EVT_LEVEL'
+                           AND vc.val_code = COALESCE(
+                               (SELECT CAST(MAX(e3.evt_level) AS VARCHAR)
+                                FROM   cm_evt e3
+                                WHERE  e3.mng_no = s.mng_no
+                                       AND e3.evt_level > 0
+                                       AND e3.evt_end_date IS NULL),
+                               '0'
+                           )),
+                   '#00AA00'
+               ) AS evt_level_color,
+               COALESCE(
+                   (SELECT CAST(p.sensor_value AS VARCHAR)
+                    FROM   cm_fms_perf p
+                    WHERE  p.mng_no = s.mng_no
+                           AND p.sensor_id = s.sensor_id
+                           AND p.perf_date >= CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+                    ORDER BY p.perf_date DESC
+                    LIMIT 1),
+                   ''
+               ) AS sensor_value
+        FROM   cm_fms_sensor s
+               INNER JOIN cm_topo_item ti ON s.mng_no = ti.mng_no
+               INNER JOIN cm_topo_group g ON ti.grp_no = g.grp_no
+                   AND g.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+        WHERE  ti.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+               AND ti.grp_no = #{grpNo}
+        ORDER BY sensor_id
+    </select>
+
+</mapper>

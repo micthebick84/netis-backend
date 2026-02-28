@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.GisTopoMapper">
+
+    <!-- ========================================== -->
+    <!-- GIS Topology Mapper (PostgreSQL)           -->
+    <!-- ========================================== -->
+
+    <!-- 1. selectGroupInfo: GIS group information -->
+    <select id="selectGroupInfo" resultType="map">
+        SELECT grp_no,
+               grp_name,
+               gis_zoom,
+               CAST(gis_lat AS VARCHAR) AS gis_lat,
+               CAST(gis_lnt AS VARCHAR) AS gis_lnt,
+               view_type
+        FROM   cm_topo_group
+        WHERE  user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </select>
+
+    <!-- 2. selectGisItemList: Combined GIS items from groups, devices, and APs -->
+    <select id="selectGisItemList" resultType="map">
+        <!-- GRP items: topology sub-groups with GIS coordinates -->
+        SELECT 'GRP' AS dev_kind1,
+               '' AS dev_kind2,
+               g.grp_no AS mng_no,
+               g.grp_name AS dev_name,
+               '' AS dev_ip,
+               COALESCE(CAST(g.gis_lat AS VARCHAR), '') AS lat,
+               COALESCE(CAST(g.gis_lnt AS VARCHAR), '') AS lnt,
+               0 AS evt_level
+        FROM   cm_topo_group g
+        WHERE  g.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+        <choose>
+            <when test="unsetLatLnt != null and unsetLatLnt == true">
+                AND (g.gis_lat IS NULL OR g.gis_lnt IS NULL)
+            </when>
+            <otherwise>
+                AND g.gis_lat IS NOT NULL
+                AND g.gis_lnt IS NOT NULL
+            </otherwise>
+        </choose>
+
+        UNION ALL
+
+        <!-- DEV/SVR/VSVR/RADIO items: devices with GIS coordinates -->
+        SELECT i.dev_kind1,
+               i.dev_kind2,
+               i.mng_no,
+               d.dev_name,
+               d.dev_ip,
+               COALESCE(d.lat, '') AS lat,
+               COALESCE(d.lnt, '') AS lnt,
+               COALESCE(i.evt_level, 0) AS evt_level
+        FROM   cm_topo_item i
+               INNER JOIN cm_dev10 d ON i.mng_no = d.mng_no
+        WHERE  i.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+               AND i.dev_kind1 IN ('DEV', 'SVR', 'VSVR', 'RADIO')
+        <choose>
+            <when test="unsetLatLnt != null and unsetLatLnt == true">
+                AND (d.lat IS NULL OR d.lat = '' OR d.lnt IS NULL OR d.lnt = '')
+            </when>
+            <otherwise>
+                AND d.lat IS NOT NULL AND d.lat != ''
+                AND d.lnt IS NOT NULL AND d.lnt != ''
+            </otherwise>
+        </choose>
+
+        UNION ALL
+
+        <!-- AP items: access point devices with GIS coordinates -->
+        SELECT i.dev_kind1,
+               i.dev_kind2,
+               i.mng_no,
+               COALESCE(ap.ap_name, d.dev_name) AS dev_name,
+               COALESCE(ap.ap_ip, d.dev_ip) AS dev_ip,
+               COALESCE(ap.lat, d.lat, '') AS lat,
+               COALESCE(ap.lnt, d.lnt, '') AS lnt,
+               COALESCE(i.evt_level, 0) AS evt_level
+        FROM   cm_topo_item i
+               INNER JOIN cm_dev_ap ap ON i.mng_no = ap.mng_no
+               LEFT JOIN cm_dev10 d ON ap.parent_mng_no = d.mng_no
+        WHERE  i.user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+               AND i.dev_kind1 = 'AP'
+        <choose>
+            <when test="unsetLatLnt != null and unsetLatLnt == true">
+                AND (COALESCE(ap.lat, d.lat) IS NULL OR COALESCE(ap.lat, d.lat) = ''
+                  OR COALESCE(ap.lnt, d.lnt) IS NULL OR COALESCE(ap.lnt, d.lnt) = '')
+            </when>
+            <otherwise>
+                AND COALESCE(ap.lat, d.lat) IS NOT NULL AND COALESCE(ap.lat, d.lat) != ''
+                AND COALESCE(ap.lnt, d.lnt) IS NOT NULL AND COALESCE(ap.lnt, d.lnt) != ''
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 3. updateItemLatLnt: Batch update GIS coordinates for items -->
+    <update id="updateItemLatLnt">
+        <foreach collection="list" item="item" separator=";">
+            <choose>
+                <when test="item.devKind1 == 'GRP'">
+                    UPDATE cm_topo_group
+                    SET    gis_lat = CAST(#{item.lat} AS NUMERIC(14,9)),
+                           gis_lnt = CAST(#{item.lnt} AS NUMERIC(12,7))
+                    WHERE  grp_no = #{item.mngNo}
+                           AND user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+                </when>
+                <when test="item.devKind1 == 'DEV' or item.devKind1 == 'SVR' or item.devKind1 == 'VSVR' or item.devKind1 == 'RADIO'">
+                    UPDATE cm_dev10
+                    SET    lat = #{item.lat},
+                           lnt = #{item.lnt}
+                    WHERE  mng_no = #{item.mngNo}
+                </when>
+                <when test="item.devKind1 == 'AP'">
+                    UPDATE cm_dev_ap
+                    SET    lat = #{item.lat},
+                           lnt = #{item.lnt}
+                    WHERE  mng_no = #{item.mngNo}
+                </when>
+            </choose>
+        </foreach>
+    </update>
+
+    <!-- 4. updateGroupLatLng: Update GIS map center and zoom for a group -->
+    <update id="updateGroupLatLng">
+        UPDATE cm_topo_group
+        SET    gis_zoom = CAST(#{gisZoom} AS REAL),
+               gis_lat  = CAST(#{gisLat} AS NUMERIC(14,9)),
+               gis_lnt  = CAST(#{gisLnt} AS NUMERIC(12,7))
+        WHERE  grp_no  = #{grpNo}
+               AND user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </update>
+
+    <!-- 5. deleteGisItem: Batch delete GIS items (reset coordinates) -->
+    <delete id="deleteGisItem">
+        <foreach collection="list" item="item" separator=";">
+            <choose>
+                <when test="item.devKind1 == 'GRP'">
+                    UPDATE cm_topo_group
+                    SET    gis_lat = NULL,
+                           gis_lnt = NULL
+                    WHERE  grp_no = #{item.mngNo}
+                           AND user_id = (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+                </when>
+                <otherwise>
+                    UPDATE cm_dev10
+                    SET    lat = NULL,
+                           lnt = NULL
+                    WHERE  mng_no = #{item.mngNo}
+                </otherwise>
+            </choose>
+        </foreach>
+    </delete>
+
+</mapper>

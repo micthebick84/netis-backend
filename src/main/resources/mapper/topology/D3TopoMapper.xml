@@ -1,0 +1,833 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.D3TopoMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapTopGrpDto" id="resultMapTopGrpInfo">
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="grpParent" column="grp_parent"/>
+        <result property="grpParentNm" column="grp_parent_nm"/>
+        <result property="isShare" column="isshare"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="cnt" column="cnt"/>
+        <result property="itemConf" column="item_conf"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.TopoItemDto" id="resultTopoItem">
+        <result property="uniqId" column="uniq_id"/>
+        <result property="itemName" column="item_name"/>
+        <result property="xpoint" column="xpoint"/>
+        <result property="ypoint" column="ypoint"/>
+        <result property="itemNo" column="item_no"/>
+        <result property="grpNo" column="grp_no"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="devKind1" column="dev_kind1"/>
+        <result property="devKind2" column="dev_kind2"/>
+        <result property="vendorStr" column="vendor_str"/>
+        <result property="devKind1Str" column="dev_kind1_str"/>
+        <result property="devKind2Str" column="dev_kind2_str"/>
+        <result property="usrKind" column="usr_kind"/>
+        <result property="itemSize" column="item_size"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="itemAlias" column="item_alias"/>
+        <result property="fontSize" column="font_size"/>
+        <result property="evtLevel" column="evt_level"/>
+        <result property="engNo" column="eng_no"/>
+        <result property="evtType" column="evt_type"/>
+        <result property="childCnt" column="child_cnt"/>
+        <result property="temp1" column="temp1"/>
+        <result property="temp2" column="temp2"/>
+        <result property="temp3" column="temp3"/>
+        <result property="userContent" column="user_content"/>
+        <result property="haStatus" column="ha_status"/>
+        <result property="showLabel" column="show_label"/>
+        <result property="dynInfo" column="dyn_info"/>
+        <result property="location" column="location"/>
+        <result property="icmpPoll" column="icmp_poll"/>
+        <result property="devPerf" column="dev_perf"/>
+        <result property="itemConf" column="item_conf"/>
+        <result property="imgKind3" column="img_kind3"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.TopoLinkDto" id="resultTopoLink">
+        <result property="linkNo" column="link_no"/>
+        <result property="mngNo1" column="mng_no1"/>
+        <result property="mngNo2" column="mng_no2"/>
+        <result property="ifIdx1" column="if_idx1"/>
+        <result property="ifIdx2" column="if_idx2"/>
+        <result property="itemNo1" column="item_no1"/>
+        <result property="itemNo2" column="item_no2"/>
+        <result property="evtLevel1" column="evt_level1"/>
+        <result property="evtLevel2" column="evt_level2"/>
+        <result property="lineWidth1" column="line_width1"/>
+        <result property="lineWidth2" column="line_width2"/>
+        <result property="linkName1" column="link_name1"/>
+        <result property="linkName2" column="link_name2"/>
+        <result property="linkIdx1" column="link_idx1"/>
+        <result property="linkIdx2" column="link_idx2"/>
+        <result property="trafficType1" column="traffic_type1"/>
+        <result property="trafficType2" column="traffic_type2"/>
+        <result property="traffic1" column="traffic1"/>
+        <result property="traffic2" column="traffic2"/>
+        <result property="traffic1In" column="traffic1_in"/>
+        <result property="traffic1Out" column="traffic1_out"/>
+        <result property="traffic2In" column="traffic2_in"/>
+        <result property="traffic2Out" column="traffic2_out"/>
+        <result property="point1" column="point1"/>
+        <result property="point2" column="point2"/>
+        <result property="point3" column="point3"/>
+        <result property="isMain" column="is_main"/>
+        <result property="isMulti" column="is_multi"/>
+        <result property="lineSize" column="line_size"/>
+        <result property="lineType" column="line_type"/>
+        <result property="gcNo" column="gc_no"/>
+        <result property="shEvt" column="sh_evt"/>
+        <result property="linePointUD1" column="line_point_ud1"/>
+        <result property="linePointUD2" column="line_point_ud2"/>
+        <result property="linePointLR1" column="line_point_lr1"/>
+        <result property="linePointLR2" column="line_point_lr2"/>
+        <result property="curveX1" column="curve_x1"/>
+        <result property="curveY1" column="curve_y1"/>
+        <result property="curveX2" column="curve_x2"/>
+        <result property="curveY2" column="curve_y2"/>
+        <result property="lineStyle" column="line_style"/>
+        <result property="lineColor" column="line_color"/>
+        <result property="pollingColor" column="polling_color"/>
+        <result property="userPollLineColor1" column="user_polling_line_color1"/>
+        <result property="userPollLineColor2" column="user_polling_line_color2"/>
+        <result property="lineTrafficEffect" column="line_traffic_effect"/>
+        <result property="lineTrafficEffectSpeed" column="line_traffic_effect_speed"/>
+        <result property="lineFlowEffect" column="line_flow_effect"/>
+        <result property="lineFlowEffectSpeed" column="line_flow_effect_speed"/>
+        <result property="lineFlowEffectCount" column="line_flow_effect_count"/>
+        <result property="lineFlowEffectColor" column="line_flow_effect_color"/>
+        <result property="lineLabelConf" column="line_label_conf"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.ComImgDto" id="resultMapComImg">
+        <result property="imgNo" column="img_no"/>
+        <result property="imgName" column="img_name"/>
+        <result property="imgUid" column="img_uid"/>
+        <result property="img" column="img"/>
+        <result property="imgKind1" column="img_kind1"/>
+        <result property="imgKind2" column="img_kind2"/>
+        <result property="imgKind3" column="img_kind3"/>
+        <result property="sConf" column="s_conf"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.TopoErrorDto" id="resultTopoError">
+        <result property="ymdhms" column="ymdhms"/>
+        <result property="evtLevel" column="evt_level"/>
+        <result property="evtLevelStr" column="evt_level_str"/>
+        <result property="evtName" column="evt_name"/>
+        <result property="srcType" column="src_type"/>
+        <result property="srcTypeStr" column="src_type_str"/>
+        <result property="srcInfo" column="src_info"/>
+        <result property="itemNo" column="item_no"/>
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="userDevName" column="user_dev_name"/>
+        <result property="devName" column="dev_name"/>
+        <result property="devKind1" column="dev_kind1"/>
+        <result property="pathName" column="path_name"/>
+        <result property="rackNo" column="rack_no"/>
+    </resultMap>
+
+    <!-- Edit permission check -->
+    <select id="selectTopoEditYn" resultType="string">
+        SELECT CASE auth WHEN 'System' THEN 'Y'
+               ELSE COALESCE((SELECT edit_yn FROM cm_topo_auth_group WHERE auth_grp_no = A.topo_auth_grp_no), 'Y')
+               END AS edit_yn
+        FROM   com_user A
+        WHERE  user_id = #{userId}
+    </select>
+
+    <!-- Top-level group info -->
+    <select id="selectMapTopGrpInfo" resultMap="resultMapTopGrpInfo">
+        <choose>
+            <when test="isshare == 1">
+                SELECT grp_no, cnt, #{isshare} AS isshare,
+                       (SELECT grp_parent FROM cm_topo_group WHERE user_id = T.user_id AND grp_no = T.grp_no) AS grp_parent,
+                       (SELECT grp_name FROM cm_topo_group WHERE user_id = T.user_id AND grp_no = T.grp_no) AS grp_name,
+                       (SELECT grp_name FROM cm_topo_group WHERE user_id = T.user_id
+                            AND grp_no = (SELECT grp_parent FROM cm_topo_group WHERE grp_no = T.grp_no AND user_id = T.user_id)) AS grp_parent_nm
+                FROM (
+                    SELECT MIN(A1.grp_no) AS grp_no, COUNT(*) AS cnt, MIN(user_id) AS user_id
+                    FROM   cm_topo_group A1
+                    WHERE  A1.user_id = <include refid="selectMapUserId"/>
+                    AND    A1.grp_no IN (SELECT topo_grp_no FROM cm_topo_auth_group_subgrp WHERE auth_grp_no = #{sessTopoAuthGrpNo})
+                    AND    A1.grp_parent NOT IN (SELECT topo_grp_no FROM cm_topo_auth_group_subgrp WHERE auth_grp_no = #{sessTopoAuthGrpNo})
+                ) T
+            </when>
+            <otherwise>
+                SELECT grp_no, cnt, isshare, parent_id, user_id,
+                       (SELECT grp_parent FROM cm_topo_group WHERE user_id = #{userId} AND grp_no = T.grp_no) AS grp_parent,
+                       (SELECT grp_name FROM cm_topo_group WHERE user_id = #{userId} AND grp_no = T.grp_no) AS grp_name,
+                       (SELECT grp_name FROM cm_topo_group WHERE user_id = #{userId}
+                            AND grp_no = (SELECT grp_parent FROM cm_topo_group WHERE grp_no = T.grp_no AND user_id = #{userId})) AS grp_parent_nm
+                FROM (
+                    SELECT MIN(A1.grp_no) AS grp_no, COUNT(*) AS cnt, U1.isshare, U1.parent_id, U1.user_id
+                    FROM   cm_topo_group A1
+                    INNER JOIN cm_topo_leaf B1 ON A1.user_id = B1.user_id AND A1.grp_no = B1.grp_no
+                    INNER JOIN com_user U1 ON A1.user_id = U1.user_id
+                    WHERE  A1.user_id = #{userId}
+                    AND    B1.sub_no NOT IN (SELECT DISTINCT sub_no FROM cm_topo_leaf WHERE user_id = #{userId} AND grp_no != sub_no)
+                    GROUP BY U1.isshare, U1.parent_id, U1.user_id
+                ) T
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- Shared group list -->
+    <select id="selectTopoIsShareGrpList" resultMap="resultMapTopGrpInfo">
+        SELECT A1.grp_no, A1.grp_name, A1.grp_parent,
+               (SELECT grp_name FROM cm_topo_group WHERE user_id = A1.user_id AND grp_no = A1.grp_parent) AS grp_parent_nm,
+               U1.isshare, U1.parent_id, U1.user_id,
+               A1.grp_name AS item_name,
+               I1.item_no, I1.mng_no, I1.dev_kind1, I1.dev_kind2, I1.usr_kind, I1.item_alias,
+               COALESCE(I1.item_size, 3) AS item_size,
+               COALESCE(I1.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN I1.evt_level = -2 THEN 0 ELSE I1.evt_level END, 0) AS evt_level,
+               I1.evt_type, A1.view_type AS temp1, I1.temp2, I1.temp3,
+               I1.user_content, I1.show_label, I1.item_conf
+        FROM   cm_topo_group A1
+        INNER JOIN com_user U1 ON U1.parent_id = I1.user_id AND U1.user_id = #{userId}
+        INNER JOIN cm_topo_item I1 ON I1.grp_no = A1.grp_parent AND I1.mng_no = A1.grp_no
+               AND I1.dev_kind1 = 'GRP' AND I1.user_id = A1.user_id
+        WHERE  A1.user_id = <include refid="selectMapUserId"/>
+        AND    A1.grp_no IN (SELECT topo_grp_no FROM cm_topo_auth_group_subgrp WHERE auth_grp_no = #{sessTopoAuthGrpNo})
+        ORDER BY A1.grp_name
+    </select>
+
+    <!-- Non-group items for CM_EVT -->
+    <sql id="sqlTopoItemListWithoutGroupCmEvt">
+        SELECT TBITM.uniq_id, TBITM.item_name, TBITM.dev_perf, TBITM.xpoint, TBITM.ypoint, TBITM.item_no,
+               TBITM.grp_no, TBITM.mng_no, TBITM.dev_kind1, TBITM.dev_kind2, TBITM.usr_kind, TBITM.item_size,
+               TBITM.dev_ip, TBITM.item_alias, TBITM.font_size,
+               COALESCE(CASE WHEN TBEVT.evt_level = -2 THEN 0 ELSE TBEVT.evt_level END, 0) AS evt_level,
+               TBITM.eng_no, TBITM.evt_type, TBITM.child_cnt, TBITM.temp1, TBITM.temp2, TBITM.temp3,
+               TBITM.user_content, TBITM.show_label, TBITM.dyn_info, TBITM.location, TBITM.icmp_poll, TBITM.item_conf
+        FROM (
+            <!-- DEV/SVR/VSVR/APC -->
+            SELECT A.uniq_id,
+                   COALESCE(NULLIF(B.user_dev_name,''), NULLIF(B.dev_name, ''), B.dev_ip) AS item_name,
+                   A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, B.mng_no,
+                   CASE WHEN C.mng_no IS NULL AND B.dev_kind1 != 'LMS' THEN A.dev_kind1
+                        WHEN C.mng_no IS NULL AND B.dev_kind1 = 'LMS' THEN B.dev_kind1
+                        WHEN C.mng_no IS NOT NULL AND B.dev_kind1 != 'LMS' THEN 'DEVLMS'
+                        WHEN C.mng_no IS NOT NULL AND B.dev_kind1 = 'LMS' THEN B.dev_kind1
+                        ELSE A.dev_kind1
+                   END AS dev_kind1, B.dev_kind2,
+                   A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size,
+                   COALESCE(B.dev_ip, B.dev_name) AS dev_ip, A.item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type,
+                   0 AS child_cnt,
+                   A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+                   NULL AS dyn_info,
+                   B.dev_location AS location, B.icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN cm_dev10 B ON A.mng_no = B.mng_no
+            LEFT JOIN (SELECT up_mng_no AS mng_no FROM cm_lm_map UNION SELECT down_mng_no AS mng_no FROM cm_lm_map) C ON A.mng_no = C.mng_no
+            WHERE A.dev_kind1 IN ('DEV', 'SVR', 'VSVR', 'APC')
+            AND   A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            <!-- SUB -->
+            SELECT A.uniq_id, COALESCE(NULLIF(B.sub_name,''), B.ip) AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size,
+                   COALESCE(NULLIF(B.ip, ''), B.sub_name) AS dev_ip, A.item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN nt_cfg_subnet B ON A.mng_no = B.sub_no
+            WHERE A.dev_kind1 = 'SUB' AND A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            <!-- ETC -->
+            SELECT A.uniq_id, COALESCE(NULLIF(B.dev_name, ''), A.item_alias) AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size,
+                   COALESCE(NULLIF(B.dev_ip, ''), B.url) AS dev_ip, A.item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            LEFT OUTER JOIN cm_topo_etc B ON A.item_no = B.item_no AND A.user_id = B.user_id
+            WHERE A.dev_kind1 = 'ETC' AND A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            <!-- RACK -->
+            SELECT A.uniq_id, COALESCE(NULLIF(B.rack_name, ''), A.item_alias) AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size,
+                   CAST(B.rack_u AS VARCHAR) AS dev_ip,
+                   COALESCE(A.item_alias, B.rack_name) AS item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN s_cm_rack B ON A.mng_no = B.rack_no
+            WHERE A.dev_kind1 = 'RACK' AND A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            <!-- SENSOR -->
+            SELECT A.uniq_id,
+                   CASE WHEN B.sensor_name IS NOT NULL AND B.usr_name IS NOT NULL THEN CONCAT(B.sensor_name, '-', B.usr_name)
+                        WHEN B.sensor_name IS NOT NULL THEN B.sensor_name
+                        WHEN B.usr_name IS NOT NULL THEN B.usr_name
+                   END AS item_name,
+                   A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size,
+                   COALESCE((SELECT dev_ip FROM cm_dev10 WHERE dev_kind2 = 'RTU' AND mng_no = B.mng_no), B.sensor_name) AS dev_ip,
+                   COALESCE(NULLIF(A.item_alias, ''),
+                       CASE WHEN B.sensor_name IS NOT NULL AND B.usr_name IS NOT NULL THEN CONCAT(B.sensor_name, '-', B.usr_name)
+                            WHEN B.sensor_name IS NOT NULL THEN B.sensor_name
+                            WHEN B.usr_name IS NOT NULL THEN B.usr_name END
+                   ) AS item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   A.temp1, CAST(B.sensor_id AS VARCHAR) AS temp2, A.temp3,
+                   A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN tb_fms_sensor B ON A.mng_no = B.mng_no
+            WHERE A.dev_kind1 = 'SENSOR' AND A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            <!-- POINT -->
+            SELECT A.uniq_id, A.item_alias AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size, '' AS dev_ip,
+                   A.item_alias, COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            WHERE A.dev_kind1 = 'POINT' AND A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            <!-- WAS -->
+            SELECT A.uniq_id, COALESCE(NULLIF(B.was_nm, ''), A.item_alias) AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size,
+                   CONCAT(B.dev_ip, ':', B.conn_port) AS dev_ip,
+                   COALESCE(A.item_alias, B.was_nm) AS item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN (SELECT D.dev_ip, W.* FROM cm_dev10 D INNER JOIN nt_svr_was W ON D.mng_no = W.mng_no) B ON A.mng_no = B.was_no
+            WHERE A.dev_kind1 = 'WAS' AND A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            <!-- DBMS -->
+            SELECT A.uniq_id, COALESCE(NULLIF(B.dbms_nm, ''), A.item_alias) AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size,
+                   CONCAT(B.dev_ip, ':', B.dbms_port) AS dev_ip,
+                   COALESCE(A.item_alias, B.dbms_nm) AS item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN (SELECT D.dev_ip, DB.* FROM cm_dev10 D INNER JOIN nt_svr_dbms DB ON D.mng_no = DB.mng_no) B ON A.mng_no = B.dbms_no
+            WHERE A.dev_kind1 = 'DBMS' AND A.grp_no = #{grpNo}
+            AND   A.user_id = <include refid="selectMapUserId"/>
+        ) TBITM
+        LEFT OUTER JOIN (
+            SELECT user_id, item_no, mng_no, evt_level FROM (
+                SELECT A.user_id, A.item_no,
+                    CASE
+                        WHEN B.src_type = 'AP' AND C.show_ap_event = 0 THEN 0
+                        WHEN B.src_type = 'VSVR' AND C.show_vm_event = 0 THEN 0
+                        WHEN SUM(CASE WHEN progress_state = 'A' THEN 1 ELSE 0 END) <![CDATA[ > ]]> 0 THEN -1
+                        WHEN SUM(CASE WHEN progress_state = 'W' THEN 1 ELSE 0 END) <![CDATA[ > ]]> 0 THEN -2
+                        ELSE COALESCE(MAX(B.evt_level), 0) + 1
+                    END AS evt_level,
+                    A.mng_no
+                FROM cm_topo_item A
+                INNER JOIN (
+                    SELECT src_mng_no AS mng_no,
+                           CASE WHEN src_type = 'L4' THEN 'DEV'
+                                WHEN src_type = 'SVC' AND B.code = 'TCP_01' THEN 'DEV'
+                                WHEN src_type = 'SVC' AND B.code = 'TCP_02' THEN 'SVR'
+                                ELSE src_type END AS src_type,
+                           B.evt_level, progress_state, NULL AS fms_seq_no
+                    FROM tb_com_profile PRO
+                    INNER JOIN tb_com_evtcode A ON PRO.system_cd = A.system_cd AND PRO.profile_no = A.profile_no
+                    INNER JOIN cm_evt B ON A.profile_no = B.profile_no AND A.evt_cd = B.code
+                    WHERE B.src_type NOT IN ('GRP', 'SYSLOG', 'TRAP', 'RTU', 'IF')
+                    AND   B.status = 'C'
+                    AND   (B.progress_state IS NULL OR B.progress_state != 'S')
+                    AND   B.evt_level IN (<foreach collection="evtLvlList" item="evtLevel" separator=",">#{evtLevel}</foreach>)
+                ) B ON CASE WHEN A.back_mng_no = -1 THEN A.mng_no ELSE A.back_mng_no END = B.mng_no
+                   AND COALESCE(A.temp1, 'X') = COALESCE(CAST(B.fms_seq_no AS VARCHAR), 'X')
+                INNER JOIN cm_topo_user C ON A.user_id = C.user_id
+                WHERE A.dev_kind1 NOT IN ('GRP', 'SUB', 'RACK')
+                AND   A.user_id = <include refid="selectMapUserId"/>
+                GROUP BY A.user_id, A.item_no, A.mng_no, A.temp1, B.src_type, C.show_ap_event, C.show_vm_event
+            ) TB
+        ) TBEVT ON TBITM.item_no = TBEVT.item_no AND TBITM.mng_no = TBEVT.mng_no
+    </sql>
+
+    <!-- Non-group items for PROC_EVT (pre-calculated event levels) -->
+    <sql id="sqlTopoItemListWithoutGroupProcEvt">
+        SELECT A.uniq_id,
+               COALESCE(NULLIF(B.user_dev_name,''), NULLIF(B.dev_name, ''), B.dev_ip) AS item_name, A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, B.mng_no,
+               CASE WHEN D.mng_no IS NULL AND B.dev_kind1 != 'LMS' THEN A.dev_kind1
+                    WHEN D.mng_no IS NULL AND B.dev_kind1 = 'LMS' THEN B.dev_kind1
+                    WHEN D.mng_no IS NOT NULL AND B.dev_kind1 != 'LMS' THEN 'DEVLMS'
+                    ELSE B.dev_kind1
+               END AS dev_kind1, B.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size,
+               COALESCE(B.dev_ip, B.dev_name) AS dev_ip, A.item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               CASE WHEN A.dev_kind1 = 'APC' AND C.show_ap_event = 0 THEN 0
+                    WHEN A.dev_kind1 = 'VSVR' AND C.show_vm_event = 0 THEN 0
+                    ELSE COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 0)
+               END AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+               NULL AS dyn_info, B.dev_location AS location, B.icmp_poll, A.item_conf
+        FROM cm_topo_item A
+        INNER JOIN cm_dev10 B ON A.mng_no = B.mng_no
+        INNER JOIN cm_topo_user C ON A.user_id = C.user_id
+        LEFT JOIN (SELECT up_mng_no AS mng_no FROM cm_lm_map UNION SELECT down_mng_no AS mng_no FROM cm_lm_map) D ON A.mng_no = D.mng_no
+        WHERE A.dev_kind1 IN ('DEV', 'SVR', 'VSVR', 'APC')
+        AND   A.grp_no = #{grpNo}
+        AND   A.user_id = <include refid="selectMapUserId"/>
+        UNION ALL
+        SELECT A.uniq_id, COALESCE(NULLIF(B.sub_name,''), B.ip) AS item_name, A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size, COALESCE(NULLIF(B.ip, ''), B.sub_name) AS dev_ip, A.item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 0) AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+               NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+        FROM cm_topo_item A INNER JOIN nt_cfg_subnet B ON A.mng_no = B.sub_no
+        WHERE A.dev_kind1 = 'SUB' AND A.grp_no = #{grpNo} AND A.user_id = <include refid="selectMapUserId"/>
+        UNION ALL
+        SELECT A.uniq_id, COALESCE(NULLIF(B.dev_name, ''), A.item_alias) AS item_name, A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size, COALESCE(NULLIF(B.dev_ip, ''), B.url) AS dev_ip, A.item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 4) AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+               NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+        FROM cm_topo_item A LEFT OUTER JOIN cm_topo_etc B ON A.item_no = B.item_no AND A.user_id = B.user_id
+        WHERE A.dev_kind1 = 'ETC' AND A.grp_no = #{grpNo} AND A.user_id = <include refid="selectMapUserId"/>
+        UNION ALL
+        SELECT A.uniq_id, COALESCE(NULLIF(B.rack_name, ''), A.item_alias) AS item_name, A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size, CAST(B.rack_u AS VARCHAR) AS dev_ip,
+               COALESCE(A.item_alias, B.rack_name) AS item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 0) AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+               NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+        FROM cm_topo_item A INNER JOIN s_cm_rack B ON A.mng_no = B.rack_no
+        WHERE A.dev_kind1 = 'RACK' AND A.grp_no = #{grpNo} AND A.user_id = <include refid="selectMapUserId"/>
+        UNION ALL
+        SELECT A.uniq_id,
+               CASE WHEN B.sensor_name IS NOT NULL AND B.usr_name IS NOT NULL THEN CONCAT(B.sensor_name, '-', B.usr_name)
+                    WHEN B.sensor_name IS NOT NULL THEN B.sensor_name
+                    WHEN B.usr_name IS NOT NULL THEN B.usr_name END AS item_name,
+               A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size,
+               COALESCE((SELECT dev_ip FROM cm_dev10 WHERE dev_kind2 = 'RTU' AND mng_no = B.mng_no), B.sensor_name) AS dev_ip,
+               COALESCE(NULLIF(A.item_alias, ''),
+                   CASE WHEN B.sensor_name IS NOT NULL AND B.usr_name IS NOT NULL THEN CONCAT(B.sensor_name, '-', B.usr_name)
+                        WHEN B.sensor_name IS NOT NULL THEN B.sensor_name
+                        WHEN B.usr_name IS NOT NULL THEN B.usr_name END
+               ) AS item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 0) AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, CAST(B.sensor_id AS VARCHAR) AS temp2, A.temp3,
+               A.user_content, A.show_label,
+               NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+        FROM cm_topo_item A INNER JOIN tb_fms_sensor B ON A.mng_no = B.mng_no
+        WHERE A.dev_kind1 = 'SENSOR' AND A.grp_no = #{grpNo} AND A.user_id = <include refid="selectMapUserId"/>
+        UNION ALL
+        SELECT A.uniq_id, A.item_alias AS item_name, A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size, '' AS dev_ip, A.item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 4) AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+               NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+        FROM cm_topo_item A
+        WHERE A.dev_kind1 = 'POINT' AND A.grp_no = #{grpNo} AND A.user_id = <include refid="selectMapUserId"/>
+        UNION ALL
+        SELECT A.uniq_id, COALESCE(NULLIF(B.was_nm, ''), A.item_alias) AS item_name, A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size,
+               CONCAT(B.dev_ip, ':', B.conn_port) AS dev_ip,
+               COALESCE(A.item_alias, B.was_nm) AS item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 0) AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+               NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+        FROM cm_topo_item A
+        INNER JOIN (SELECT D.dev_ip, W.* FROM cm_dev10 D INNER JOIN nt_svr_was W ON D.mng_no = W.mng_no) B ON A.mng_no = B.was_no
+        WHERE A.dev_kind1 = 'WAS' AND A.grp_no = #{grpNo} AND A.user_id = <include refid="selectMapUserId"/>
+        UNION ALL
+        SELECT A.uniq_id, COALESCE(NULLIF(B.dbms_nm, ''), A.item_alias) AS item_name, A.dev_perf,
+               COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+               A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+               COALESCE(A.item_size, 3) AS item_size,
+               CONCAT(B.dev_ip, ':', B.dbms_port) AS dev_ip,
+               COALESCE(A.item_alias, B.dbms_nm) AS item_alias,
+               COALESCE(A.font_size, 0) AS font_size,
+               COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 0) AS evt_level,
+               0 AS eng_no, A.evt_type, 0 AS child_cnt,
+               A.temp1, A.temp2, A.temp3, A.user_content, A.show_label,
+               NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+        FROM cm_topo_item A
+        INNER JOIN (SELECT D.dev_ip, DB.* FROM cm_dev10 D INNER JOIN nt_svr_dbms DB ON D.mng_no = DB.mng_no) B ON A.mng_no = B.dbms_no
+        WHERE A.dev_kind1 = 'DBMS' AND A.grp_no = #{grpNo} AND A.user_id = <include refid="selectMapUserId"/>
+    </sql>
+
+    <!-- Item list with CM_EVT event joining -->
+    <select id="selectTopoItemListCmEvt" resultMap="resultTopoItem">
+        SELECT ITEM.*, CI.img_kind3, CDS.ha_status
+        FROM (
+            SELECT A.uniq_id, B.grp_name AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size, B.grp_name AS dev_ip, A.item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 1) AS evt_level,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   B.view_type AS temp1, A.temp2, A.temp3,
+                   A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN cm_topo_group B ON A.grp_no = B.grp_parent AND A.mng_no = B.grp_no AND A.user_id = B.user_id
+            WHERE A.dev_kind1 = 'GRP'
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            AND   A.grp_no = #{grpNo}
+            GROUP BY A.item_no, A.uniq_id, B.grp_name, A.dev_perf, A.xpoint, A.ypoint,
+                     A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind, A.item_size,
+                     A.item_alias, A.font_size, A.evt_level, A.evt_type,
+                     B.view_type, A.temp2, A.temp3, A.user_content, A.show_label, A.item_conf
+            UNION ALL
+            <include refid="sqlTopoItemListWithoutGroupCmEvt"/>
+        ) ITEM
+        LEFT OUTER JOIN com_img CI ON ITEM.usr_kind = CI.img_uid
+        LEFT JOIN cm_dev10_status CDS ON ITEM.mng_no = CDS.mng_no
+    </select>
+
+    <!-- Item list with pre-calculated event levels -->
+    <select id="selectTopoItemListProcEvt" resultMap="resultTopoItem">
+        SELECT ITEM.*, CI.img_kind3, CDS.ha_status
+        FROM (
+            SELECT A.uniq_id, B.grp_name AS item_name, A.dev_perf,
+                   COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                   A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                   COALESCE(A.item_size, 3) AS item_size, B.grp_name AS dev_ip, A.item_alias,
+                   COALESCE(A.font_size, 0) AS font_size,
+                   COALESCE(CASE WHEN A.evt_level = -2 THEN 0 ELSE A.evt_level END, 0) AS evt_level,
+                   0 AS eng_no, A.evt_type, 0 AS child_cnt,
+                   B.view_type AS temp1, A.temp2, A.temp3,
+                   A.user_content, A.show_label,
+                   NULL AS dyn_info, '' AS location, 0 AS icmp_poll, A.item_conf
+            FROM cm_topo_item A
+            INNER JOIN cm_topo_group B ON A.grp_no = B.grp_parent AND A.mng_no = B.grp_no AND A.user_id = B.user_id
+            INNER JOIN cm_topo_user C ON A.user_id = C.user_id
+            WHERE A.dev_kind1 = 'GRP'
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            AND   A.grp_no = #{grpNo}
+            GROUP BY A.item_no, A.uniq_id, B.grp_name, A.dev_perf, A.xpoint, A.ypoint,
+                     A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind, A.item_size,
+                     A.item_alias, A.font_size, A.evt_level, A.evt_type,
+                     B.view_type, A.temp2, A.temp3, A.user_content, A.show_label, A.item_conf
+            UNION ALL
+            <include refid="sqlTopoItemListWithoutGroupProcEvt"/>
+        ) ITEM
+        LEFT OUTER JOIN com_img CI ON ITEM.usr_kind = CI.img_uid
+        LEFT JOIN cm_dev10_status CDS ON ITEM.mng_no = CDS.mng_no
+    </select>
+
+    <!-- Link list -->
+    <select id="selectTopoLinkList" resultMap="resultTopoLink">
+        SELECT A.link_no, A.mng_no1, A.mng_no2, A.if_idx1, A.if_idx2,
+               A.item_no1, A.item_no2,
+               COALESCE(CASE WHEN A.evt_level1 = -2 THEN 0 ELSE A.evt_level1 END, 1) AS evt_level1,
+               COALESCE(CASE WHEN A.evt_level2 = -2 THEN 0 ELSE A.evt_level2 END, 1) AS evt_level2,
+               COALESCE(T1.line_width, 0) AS line_width1,
+               COALESCE(T2.line_width, 0) AS line_width2,
+               T1.if_name AS link_name1,
+               T2.if_name AS link_name2,
+               COALESCE(A.link_idx1, 0) AS link_idx1,
+               COALESCE(A.link_idx2, 0) AS link_idx2,
+               COALESCE(A.traffic_type1, 'I') AS traffic_type1,
+               COALESCE(A.traffic_type2, 'I') AS traffic_type2,
+               COALESCE(A.traffic1, 0) AS traffic1,
+               COALESCE(A.traffic2, 0) AS traffic2,
+               COALESCE(A.traffic1_in, 0) AS traffic1_in,
+               COALESCE(A.traffic1_out, 0) AS traffic1_out,
+               COALESCE(A.traffic2_in, 0) AS traffic2_in,
+               COALESCE(A.traffic2_out, 0) AS traffic2_out,
+               A.point1, A.point2, A.point3,
+               A.is_main, A.is_multi,
+               COALESCE(A.line_size, 1) AS line_size,
+               COALESCE(A.line_type, 1) AS line_type,
+               A.gc_no, A.sh_evt,
+               COALESCE(A.line_point_ud1, 0) AS line_point_ud1,
+               COALESCE(A.line_point_ud2, 0) AS line_point_ud2,
+               COALESCE(A.line_point_lr1, 0) AS line_point_lr1,
+               COALESCE(A.line_point_lr2, 0) AS line_point_lr2,
+               A.curve_x1, A.curve_y1, A.curve_x2, A.curve_y2,
+               COALESCE(A.line_style, '') AS line_style,
+               A.line_color, A.polling_color,
+               CASE WHEN A.polling_color IS NULL AND A.mng_no1 IS NOT NULL AND A.if_idx1 IS NOT NULL THEN B.polling_color ELSE NULL END AS user_polling_line_color1,
+               CASE WHEN A.polling_color IS NULL AND A.mng_no2 IS NOT NULL AND A.if_idx2 IS NOT NULL THEN B.polling_color ELSE NULL END AS user_polling_line_color2,
+               COALESCE(A.line_traffic_effect, 'None') AS line_traffic_effect,
+               CASE WHEN COALESCE(A.line_traffic_effect_speed, 0) = 0 THEN 1 ELSE A.line_traffic_effect_speed END AS line_traffic_effect_speed,
+               COALESCE(A.line_flow_effect, 'None') AS line_flow_effect,
+               CASE WHEN COALESCE(A.line_flow_effect_speed, 0) = 0 THEN 1 ELSE A.line_flow_effect_speed END AS line_flow_effect_speed,
+               CASE WHEN COALESCE(A.line_flow_effect_count, 0) = 0 THEN 1 ELSE A.line_flow_effect_count END AS line_flow_effect_count,
+               A.line_flow_effect_color,
+               A.line_label_conf
+        FROM cm_topo_link A
+        INNER JOIN cm_topo_user B ON A.user_id = B.user_id
+        LEFT JOIN (
+            SELECT mng_no, if_idx, name AS if_name, band_width AS line_width FROM nt_svr_network
+            UNION ALL
+            SELECT mng_no, if_idx,
+                   COALESCE(NULLIF(COALESCE(NULLIF(if_alias, ''), user_if_name), ''), if_name) AS if_name,
+                   CASE WHEN user_line_width_poll = 1 THEN COALESCE(user_line_width, 0) ELSE COALESCE(line_width, 0) END AS line_width
+            FROM cm_dev20
+        ) T1 ON A.mng_no1 = T1.mng_no AND A.if_idx1 = T1.if_idx
+        LEFT JOIN (
+            SELECT mng_no, if_idx, name AS if_name, band_width AS line_width FROM nt_svr_network
+            UNION ALL
+            SELECT mng_no, if_idx,
+                   COALESCE(NULLIF(COALESCE(NULLIF(if_alias, ''), user_if_name), ''), if_name) AS if_name,
+                   CASE WHEN user_line_width_poll = 1 THEN COALESCE(user_line_width, 0) ELSE COALESCE(line_width, 0) END AS line_width
+            FROM cm_dev20
+        ) T2 ON A.mng_no2 = T2.mng_no AND A.if_idx2 = T2.if_idx
+        WHERE A.grp_no = #{grpNo}
+        AND   A.user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- Parent group number -->
+    <select id="selectParentGrpNo" resultType="long">
+        SELECT COALESCE((
+            SELECT grp_parent
+            FROM   cm_topo_group A
+            WHERE  A.grp_no = #{grpNo}
+            AND    A.user_id = <include refid="selectMapUserId"/>
+            <if test="isshare == 1">
+                AND A.grp_parent IN (
+                    SELECT DISTINCT B1.sub_no
+                    FROM cm_topo_auth_group_subgrp A1
+                    INNER JOIN cm_topo_leaf B1 ON A1.topo_grp_no = B1.grp_no
+                    WHERE A1.auth_grp_no = #{sessTopoAuthGrpNo}
+                    AND   B1.user_id = <include refid="selectMapUserId"/>
+                )
+            </if>
+        ), 1) AS grp_parent
+    </select>
+
+    <!-- Current group info with path -->
+    <select id="selectTopoGrpInfo" resultType="com.example.netisbackend.dto.topology.MapTopoGrpDto">
+        SELECT COALESCE(CTG.bg_file_nm, 'BG_Default') AS bg_file_nm,
+               CTG.grp_no, CTG.grp_name, CTG.grp_parent,
+               COALESCE(CTG.view_type, 'TOPO') AS view_type,
+               TGRP.path_name
+        FROM   cm_topo_group CTG
+        INNER JOIN (
+            WITH RECURSIVE CTE AS (
+                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS VARCHAR(200)) AS path_name
+                FROM cm_topo_group
+                WHERE grp_no = (SELECT grp_no FROM cm_topo_group
+                                WHERE grp_parent = 0 AND user_id = <include refid="selectMapUserId"/>)
+                AND   user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT a.grp_no, a.grp_name, a.grp_parent, CONCAT(b.path_name, ' > ', a.grp_name)
+                FROM cm_topo_group a
+                INNER JOIN CTE b ON a.grp_parent = b.grp_no
+                WHERE a.user_id = <include refid="selectMapUserId"/>
+            )
+            SELECT DISTINCT * FROM CTE
+        ) TGRP ON CTG.grp_no = TGRP.grp_no
+        WHERE CTG.grp_no = #{grpNo}
+        AND   CTG.user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- Common image list -->
+    <select id="selectMapComImgList" resultMap="resultMapComImg">
+        SELECT img_no, img_name, img_uid, img, img_kind1, img_kind2, img_kind3, s_conf
+        FROM   com_img
+        WHERE  img_kind1 = 'MAP' AND s_conf = 1
+    </select>
+
+    <!-- Error list from CM_EVT -->
+    <select id="selectTopoErrorListCmEvt" resultMap="resultTopoError">
+        SELECT DISTINCT
+            TO_CHAR(TO_TIMESTAMP(CONCAT(EVT.yyyymmdd, EVT.hhmmss), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD HH24:MI:SS') AS ymdhms,
+            EVT.evt_level,
+            CD10.code_value1 AS evt_level_str,
+            EVTCD.evt_nm AS evt_name,
+            EVT.src_type,
+            CMCD.code_value1 AS src_type_str,
+            CASE
+                WHEN EVT.src_type IN ('DEV', 'SYSLOG', 'TRAP', 'SVR', 'WAS', 'DBMS', 'ONU', 'VSVR', 'AP') THEN
+                    (SELECT CONCAT(COALESCE(NULLIF(user_dev_name, ''), dev_name), '[', dev_ip, ']')
+                     FROM cm_dev10 WHERE mng_no = EVT.src_mng_no)
+                WHEN EVT.src_type = 'IF' THEN
+                    (SELECT CONCAT(COALESCE(NULLIF(T1.user_dev_name, ''), T1.dev_name), '[', T1.dev_ip, '] - ',
+                                   COALESCE(NULLIF(T2.user_if_name, ''), T2.if_name))
+                     FROM cm_dev10 T1 INNER JOIN cm_dev20 T2 ON T1.mng_no = T2.mng_no
+                     WHERE T1.mng_no = EVT.src_mng_no AND T2.if_idx = EVT.src_idx)
+                WHEN EVT.src_type = 'GRP' THEN
+                    (SELECT grp_name FROM nt_cfg_group WHERE grp_no = EVT.src_grp_no)
+                WHEN EVT.src_type = 'RACK' THEN
+                    (SELECT CONCAT(rack_name, '[', rack_ip, ':', rack_port, ']') FROM s_cm_rack WHERE rack_no = EVT.src_mng_no)
+                WHEN EVT.src_type = 'SUB' THEN
+                    (SELECT CONCAT(sub_name, '[', ip, ']') FROM nt_cfg_subnet WHERE sub_no = EVT.src_sub_no)
+                WHEN EVT.src_type = 'SVC' THEN
+                    (SELECT CONCAT(svc_name, '[', SPLIT_PART(svc_info, ':', 1), ']-', SPLIT_PART(svc_info, ':', 2))
+                     FROM tb_com_service WHERE svc_no = EVT.src_svr_no AND mng_no = EVT.src_mng_no)
+                ELSE ''
+            END AS src_info,
+            TOPO.item_no, TOPO.grp_no, TGRP.grp_name, TOPO.mng_no, TOPO.dev_ip,
+            TOPO.user_dev_name, TOPO.dev_name, TGRP.path_name, TOPO.rack_no
+        FROM cm_evt EVT
+        INNER JOIN (SELECT * FROM tb_com_evtcode WHERE profile_no = 0) EVTCD ON EVT.code = EVTCD.evt_cd
+        INNER JOIN (
+            WITH RECURSIVE CTE AS (
+                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS VARCHAR(200)) AS path_name
+                FROM cm_topo_group WHERE grp_no = #{grpNo} AND user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT a.grp_no, a.grp_name, a.grp_parent, CONCAT(b.path_name, ' > ', a.grp_name)
+                FROM cm_topo_group a INNER JOIN CTE b ON a.grp_parent = b.grp_no
+                WHERE a.user_id = <include refid="selectMapUserId"/>
+            )
+            SELECT DISTINCT * FROM CTE
+        ) TGRP ON TRUE
+        INNER JOIN (
+            SELECT DISTINCT A.item_no, A.grp_no, B.mng_no, B.dev_ip, B.user_dev_name, B.dev_name,
+                   A.dev_kind1, A.evt_level, '' AS rack_no
+            FROM cm_topo_item A INNER JOIN cm_dev10 B ON A.mng_no = B.mng_no
+            WHERE A.dev_kind1 IN (<foreach collection="list" item="item" separator=",">#{item}</foreach>)
+            AND   A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            SELECT DISTINCT A.item_no, A.grp_no, A.mng_no, B.ip AS dev_ip, '' AS user_dev_name,
+                   B.sub_name AS dev_name, A.dev_kind1, A.evt_level, '' AS rack_no
+            FROM cm_topo_item A INNER JOIN nt_cfg_subnet B ON A.mng_no = B.sub_no
+            WHERE A.dev_kind1 = 'SUB' AND A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            SELECT DISTINCT A.item_no, A.grp_no, D.mng_no, D.dev_ip, D.user_dev_name, D.dev_name,
+                   D.dev_kind1, A.evt_level, CAST(B.rack_no AS VARCHAR) AS rack_no
+            FROM cm_topo_item A
+            INNER JOIN s_cm_rack B ON A.mng_no = B.rack_no
+            INNER JOIN s_cm_rack_conf C ON B.rack_no = C.rack_no
+            INNER JOIN cm_dev10 D ON C.mng_no = D.mng_no
+            WHERE A.dev_kind1 = 'RACK' AND COALESCE(C.dev_kind1, '') != 'DEV_ETC'
+            AND   A.user_id = <include refid="selectMapUserId"/>
+        ) TOPO ON EVT.src_mng_no = TOPO.mng_no AND TOPO.grp_no = TGRP.grp_no
+        LEFT JOIN (SELECT * FROM cm_code10 WHERE code_kind = 'WEB_CONF' AND code_id LIKE '%EVT_LEVEL%') CD10
+            ON EVT.evt_level = CAST(CD10.code_value3 AS INTEGER)
+        LEFT JOIN (SELECT * FROM cm_code10 WHERE code_kind = 'EVT_CD') CMCD ON EVT.code = CMCD.code_id
+        WHERE EVT.status = 'C'
+        AND   (EVT.progress_state IS NULL OR EVT.progress_state != 'S')
+        <if test="isshare == 1">
+            AND TOPO.grp_no IN (SELECT topo_grp_no FROM cm_topo_auth_group_subgrp WHERE auth_grp_no = #{sessTopoAuthGrpNo})
+        </if>
+        ORDER BY ymdhms DESC
+    </select>
+
+    <!-- Error list from procedure events -->
+    <select id="selectTopoErrorListProcEvt" resultMap="resultTopoError">
+        SELECT DISTINCT
+            TO_CHAR(TO_TIMESTAMP(CONCAT(EVT.yyyymmdd, EVT.hhmmss), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD HH24:MI:SS') AS ymdhms,
+            EVT.evt_level,
+            CD10.code_value1 AS evt_level_str,
+            EVTCD.evt_nm AS evt_name,
+            EVT.src_type,
+            '' AS src_type_str,
+            CASE
+                WHEN EVT.src_type IN ('DEV', 'SVR', 'VSVR', 'AP') THEN
+                    (SELECT CONCAT(COALESCE(NULLIF(user_dev_name, ''), dev_name), '[', dev_ip, ']')
+                     FROM cm_dev10 WHERE mng_no = EVT.src_mng_no)
+                WHEN EVT.src_type = 'IF' THEN
+                    (SELECT CONCAT(COALESCE(NULLIF(T1.user_dev_name, ''), T1.dev_name), '[', T1.dev_ip, '] - ',
+                                   COALESCE(NULLIF(T2.user_if_name, ''), T2.if_name))
+                     FROM cm_dev10 T1 INNER JOIN cm_dev20 T2 ON T1.mng_no = T2.mng_no
+                     WHERE T1.mng_no = EVT.src_mng_no AND T2.if_idx = EVT.src_idx)
+                ELSE ''
+            END AS src_info,
+            TOPO.item_no, TOPO.grp_no, TGRP.grp_name, TOPO.mng_no, TOPO.dev_ip,
+            TOPO.user_dev_name, TOPO.dev_name, TGRP.path_name, TOPO.rack_no
+        FROM tb_com_topo_evt EVT
+        INNER JOIN (SELECT * FROM tb_com_evtcode WHERE profile_no = 0) EVTCD ON EVT.code = EVTCD.evt_cd
+        INNER JOIN (
+            WITH RECURSIVE CTE AS (
+                SELECT grp_no, grp_name, grp_parent, CAST(grp_name AS VARCHAR(200)) AS path_name
+                FROM cm_topo_group WHERE grp_no = #{grpNo} AND user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT a.grp_no, a.grp_name, a.grp_parent, CONCAT(b.path_name, ' > ', a.grp_name)
+                FROM cm_topo_group a INNER JOIN CTE b ON a.grp_parent = b.grp_no
+                WHERE a.user_id = <include refid="selectMapUserId"/>
+            )
+            SELECT DISTINCT * FROM CTE
+        ) TGRP ON TRUE
+        INNER JOIN (
+            SELECT DISTINCT A.item_no, A.grp_no, B.mng_no, B.dev_ip, B.user_dev_name, B.dev_name,
+                   A.dev_kind1, A.evt_level, '' AS rack_no
+            FROM cm_topo_item A INNER JOIN cm_dev10 B ON A.mng_no = B.mng_no
+            WHERE A.dev_kind1 IN (<foreach collection="list" item="item" separator=",">#{item}</foreach>)
+            AND   A.user_id = <include refid="selectMapUserId"/>
+        ) TOPO ON EVT.src_mng_no = TOPO.mng_no AND TOPO.grp_no = TGRP.grp_no
+        LEFT JOIN (SELECT * FROM cm_code10 WHERE code_kind = 'WEB_CONF' AND code_id LIKE '%EVT_LEVEL%') CD10
+            ON EVT.evt_level = CAST(CD10.code_value3 AS INTEGER)
+        WHERE EVT.status = 'C'
+        AND   (EVT.progress_state IS NULL OR EVT.progress_state != 'S')
+        ORDER BY ymdhms DESC
+    </select>
+
+</mapper>
