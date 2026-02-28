@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.LinkViewMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <select id="selectPollingLinkList" resultType="com.example.netisbackend.dto.topology.LinkViewDto">
+        SELECT  A.mng_no,
+                B.if_idx,
+                COALESCE(NULLIF(A.user_dev_name, ''), A.dev_name) AS dev_name,
+                COALESCE(NULLIF(B.user_if_name, ''), B.if_name) AS if_name,
+                B.if_alias,
+                B.line_width,
+                B.profile_no
+        FROM    cm_dev10 A, cm_dev20 B,
+                (
+                    SELECT  mng_no1 AS mng_no, if_idx1 AS if_idx
+                    FROM    cm_topo_link
+                    WHERE   user_id = <include refid="selectMapUserId"/>
+                    AND     link_no = #{linkNo}
+                    AND     mng_no1 IS NOT NULL
+                    AND     if_idx1 IS NOT NULL
+                    UNION ALL
+                    SELECT  mng_no2, if_idx2
+                    FROM    cm_topo_link
+                    WHERE   user_id = <include refid="selectMapUserId"/>
+                    AND     link_no = #{linkNo}
+                    AND     mng_no2 IS NOT NULL
+                    AND     if_idx2 IS NOT NULL
+                    UNION ALL
+                    SELECT  mng_no, if_idx
+                    FROM    cm_topo_link_multi
+                    WHERE   user_id = <include refid="selectMapUserId"/>
+                    AND     link_no = #{linkNo}
+                ) C
+        WHERE   A.mng_no = B.mng_no
+        AND     A.mng_no = C.mng_no
+        AND     B.if_idx = C.if_idx
+    </select>
+
+</mapper>

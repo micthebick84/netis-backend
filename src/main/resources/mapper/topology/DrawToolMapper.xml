@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.DrawToolMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <!-- ==================== Draw Tool ==================== -->
+
+    <select id="selectDrawToolList" resultType="com.example.netisbackend.dto.topology.MapDrawToolDto">
+        SELECT  DRAW_NO,
+                USER_ID,
+                GRP_NO,
+                DEV_KIND1,
+                DEV_KIND2,
+                POS_X,
+                POS_Y,
+                WIDTH,
+                HEIGHT,
+                FILL_COLOR,
+                FILL_OPACITY,
+                STROKE_COLOR,
+                STROKE_OPACITY,
+                STROKE_WIDTH,
+                CORNER_RADIUS,
+                FONT_SIZE,
+                FONT_WEIGHT,
+                TEXT_ANCHOR,
+                CASE DEV_KIND1
+                    WHEN 'DRAW_TEXT_AREA' THEN TEXT_AREA_CONTENT
+                    ELSE TEXT_CONTENT
+                END AS TEXT_CONTENT,
+                RX,
+                RY,
+                SORT_IDX,
+                COALESCE(FONT_DISTANCE, 20) AS FONT_DISTANCE,
+                COALESCE(ROTATION, 0) AS ROTATION,
+                COALESCE(LINE_STYLE, '') AS LINE_STYLE,
+                DRAW_CONF
+        FROM    CM_TOPO_DRAW_TOOL
+        WHERE   USER_ID = <include refid="selectMapUserId"/>
+        AND     GRP_NO = #{grpNo}
+        <if test="drawNo != null and drawNo > 0">
+            AND DRAW_NO = #{drawNo}
+        </if>
+        ORDER BY SORT_IDX
+    </select>
+
+    <insert id="insertDrawTool" useGeneratedKeys="true" keyColumn="draw_no" keyProperty="drawNo">
+        INSERT INTO CM_TOPO_DRAW_TOOL (
+            USER_ID, GRP_NO, DEV_KIND1, DEV_KIND2, POS_X, POS_Y, WIDTH, HEIGHT,
+            FILL_COLOR, FILL_OPACITY, STROKE_COLOR, STROKE_OPACITY, STROKE_WIDTH, CORNER_RADIUS,
+            FONT_SIZE, FONT_WEIGHT, TEXT_ANCHOR,
+            <choose>
+                <when test="devKind1 != null and devKind1 == 'DRAW_TEXT_AREA'">
+                    TEXT_AREA_CONTENT,
+                </when>
+                <otherwise>
+                    TEXT_CONTENT,
+                </otherwise>
+            </choose>
+            RX, RY, SORT_IDX, DRAW_CONF
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>, #{grpNo}, #{devKind1}, #{devKind2},
+            <choose>
+                <when test="posX != null">#{posX},</when>
+                <otherwise>300,</otherwise>
+            </choose>
+            <choose>
+                <when test="posY != null">#{posY},</when>
+                <otherwise>300,</otherwise>
+            </choose>
+            #{width}, #{height},
+            #{fillColor}, #{fillOpacity}, #{strokeColor}, #{strokeOpacity}, #{strokeWidth}, #{cornerRadius},
+            26, 'bold', 'middle',
+            <choose>
+                <when test="devKind1 != null and devKind1 == 'DRAW_TEXT_AREA'">
+                    'Text Area Contents',
+                </when>
+                <otherwise>
+                    'Text',
+                </otherwise>
+            </choose>
+            #{rx}, #{ry},
+            (SELECT COALESCE(MAX(SORT_IDX), 0) + 1 FROM CM_TOPO_DRAW_TOOL CTDT WHERE GRP_NO = #{grpNo} AND USER_ID = <include refid="selectMapUserId"/>),
+            #{drawConf}
+        )
+    </insert>
+
+    <update id="updateDrawTool">
+        UPDATE  CM_TOPO_DRAW_TOOL
+        SET     POS_X = #{posX},
+                POS_Y = #{posY},
+                WIDTH = #{width},
+                HEIGHT = #{height},
+                FILL_COLOR = #{fillColor},
+                FILL_OPACITY = #{fillOpacity},
+                STROKE_COLOR = #{strokeColor},
+                STROKE_OPACITY = #{strokeOpacity},
+                STROKE_WIDTH = #{strokeWidth},
+                CORNER_RADIUS = #{cornerRadius},
+                FONT_SIZE = #{fontSize},
+                FONT_WEIGHT = #{fontWeight},
+                TEXT_ANCHOR = #{textAnchor},
+                <choose>
+                    <when test="devKind1 != null and devKind1 == 'DRAW_TEXT_AREA'">
+                        TEXT_AREA_CONTENT = #{textContent},
+                    </when>
+                    <otherwise>
+                        TEXT_CONTENT = #{textContent},
+                    </otherwise>
+                </choose>
+                RX = #{rx},
+                RY = #{ry},
+                SORT_IDX = #{sortIdx},
+                FONT_DISTANCE = #{fontDistance},
+                ROTATION = #{rotation},
+                LINE_STYLE = #{lineStyle},
+                DRAW_CONF = #{drawConf}
+        WHERE   DRAW_NO = #{drawNo}
+    </update>
+
+    <update id="updateDrawShapeConf">
+        UPDATE  CM_TOPO_DRAW_TOOL
+        SET     DRAW_CONF = #{drawConf}
+        WHERE   DRAW_NO = #{drawNo}
+    </update>
+
+    <delete id="deleteDrawTool">
+        DELETE FROM CM_TOPO_DRAW_TOOL WHERE DRAW_NO = #{drawNo}
+    </delete>
+
+    <insert id="insertCopyDrawTool" useGeneratedKeys="true" keyColumn="draw_no" keyProperty="drawNo">
+        <foreach collection="list" item="item" index="index" separator=";">
+            INSERT INTO CM_TOPO_DRAW_TOOL (
+                USER_ID, GRP_NO, DEV_KIND1, DEV_KIND2,
+                POS_X, POS_Y, WIDTH, HEIGHT,
+                FILL_COLOR, FILL_OPACITY, STROKE_COLOR, STROKE_OPACITY,
+                STROKE_WIDTH, CORNER_RADIUS, FONT_SIZE, FONT_WEIGHT,
+                TEXT_ANCHOR, TEXT_CONTENT, RX, RY, SORT_IDX,
+                TEXT_AREA_CONTENT, FONT_DISTANCE, ROTATION, LINE_STYLE, DRAW_CONF
+            )
+            SELECT
+                USER_ID,
+                #{grpNo},
+                DEV_KIND1,
+                DEV_KIND2,
+                CASE WHEN CAST(#{grpNo} AS BIGINT) = CAST(#{orgGrpNo} AS BIGINT) THEN
+                    CASE WHEN POS_X >= CAST(#{width} AS DOUBLE PRECISION) THEN POS_X - (20 * (CAST(#{idxCnt} AS INT) + 1))
+                         ELSE POS_X + (20 * (CAST(#{idxCnt} AS INT) + 1))
+                    END
+                ELSE
+                    CASE WHEN POS_X >= CAST(#{width} AS DOUBLE PRECISION) THEN POS_X - (20 * CAST(#{idxCnt} AS INT))
+                         ELSE POS_X + (20 * CAST(#{idxCnt} AS INT))
+                    END
+                END AS POS_X,
+                CASE WHEN CAST(#{grpNo} AS BIGINT) = CAST(#{orgGrpNo} AS BIGINT) THEN
+                    CASE WHEN POS_Y >= CAST(#{height} AS DOUBLE PRECISION) THEN POS_Y - (20 * (CAST(#{idxCnt} AS INT) + 1))
+                         ELSE POS_Y + (20 * (CAST(#{idxCnt} AS INT) + 1))
+                    END
+                ELSE
+                    CASE WHEN POS_Y >= CAST(#{height} AS DOUBLE PRECISION) THEN POS_Y - (20 * CAST(#{idxCnt} AS INT))
+                         ELSE POS_Y + (20 * CAST(#{idxCnt} AS INT))
+                    END
+                END AS POS_Y,
+                WIDTH, HEIGHT,
+                FILL_COLOR, FILL_OPACITY, STROKE_COLOR, STROKE_OPACITY,
+                STROKE_WIDTH, CORNER_RADIUS, FONT_SIZE, FONT_WEIGHT,
+                TEXT_ANCHOR, TEXT_CONTENT, RX, RY,
+                (SELECT COALESCE(MAX(SORT_IDX), 0) + 1 FROM CM_TOPO_DRAW_TOOL CTDT WHERE GRP_NO = #{grpNo} AND USER_ID = <include refid="selectMapUserId"/>),
+                TEXT_AREA_CONTENT, FONT_DISTANCE, ROTATION, LINE_STYLE, DRAW_CONF
+            FROM CM_TOPO_DRAW_TOOL A
+            WHERE DRAW_NO = #{item.drawNo}
+            AND   USER_ID = <include refid="selectMapUserId"/>
+        </foreach>
+    </insert>
+
+    <!-- ==================== Spline Tool ==================== -->
+
+    <insert id="insertSplineTool" useGeneratedKeys="true" keyColumn="spline_no" keyProperty="splineNo">
+        INSERT INTO CM_TOPO_SPLINE (
+            USER_ID, GRP_NO, SPLINE_TYPE, SPLINE_STRING,
+            SPLINE_CONF, SPLINE_SIZE, SPLINE_STYLE, SPLINE_COLOR
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>, #{grpNo}, #{splineType}, #{splineString},
+            #{splineConf}, #{splineSize}, #{splineStyle}, #{splineColor}
+        )
+    </insert>
+
+    <select id="selectSplineToolList" resultType="com.example.netisbackend.dto.topology.MapSplineToolDto">
+        SELECT  SPLINE_NO,
+                USER_ID,
+                GRP_NO,
+                SPLINE_TYPE,
+                SPLINE_STRING,
+                SPLINE_CONF,
+                SPLINE_SIZE,
+                SPLINE_STYLE,
+                SPLINE_COLOR,
+                'spline' AS ITEM_TYPE
+        FROM    CM_TOPO_SPLINE
+        WHERE   USER_ID = <include refid="selectMapUserId"/>
+        AND     GRP_NO = #{grpNo}
+        <if test="splineNo != null and splineNo > 0">
+            AND SPLINE_NO = #{splineNo}
+        </if>
+    </select>
+
+    <update id="updateSplineStyle">
+        UPDATE  CM_TOPO_SPLINE
+        SET     SPLINE_TYPE = #{splineType},
+                SPLINE_STRING = #{splineString},
+                SPLINE_CONF = #{splineConf},
+                SPLINE_SIZE = #{splineSize},
+                SPLINE_STYLE = #{splineStyle},
+                SPLINE_COLOR = #{splineColor}
+        WHERE   SPLINE_NO = #{splineNo}
+    </update>
+
+    <delete id="deleteSplineTool">
+        DELETE FROM CM_TOPO_SPLINE WHERE SPLINE_NO = #{splineNo}
+    </delete>
+
+</mapper>

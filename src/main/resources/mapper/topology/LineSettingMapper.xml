@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.LineSettingMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.TopoLinkDto" id="resultLinkInfo">
+        <result property="linkNo" column="link_no"/>
+        <result property="mngNo1" column="mng_no1"/>
+        <result property="mngNo2" column="mng_no2"/>
+        <result property="ifIdx1" column="if_idx1"/>
+        <result property="ifIdx2" column="if_idx2"/>
+        <result property="itemNo1" column="item_no1"/>
+        <result property="itemNo2" column="item_no2"/>
+        <result property="evtLevel1" column="evt_level1"/>
+        <result property="evtLevel2" column="evt_level2"/>
+        <result property="lineWidth1" column="line_width1"/>
+        <result property="lineWidth2" column="line_width2"/>
+        <result property="linkName1" column="link_name1"/>
+        <result property="linkName2" column="link_name2"/>
+        <result property="linkIdx1" column="link_idx1"/>
+        <result property="linkIdx2" column="link_idx2"/>
+        <result property="trafficType1" column="traffic_type1"/>
+        <result property="trafficType2" column="traffic_type2"/>
+        <result property="traffic1" column="traffic1"/>
+        <result property="traffic2" column="traffic2"/>
+        <result property="point1" column="point1"/>
+        <result property="point2" column="point2"/>
+        <result property="point3" column="point3"/>
+        <result property="isMain" column="is_main"/>
+        <result property="isMulti" column="is_multi"/>
+        <result property="lineSize" column="line_size"/>
+        <result property="lineType" column="line_type"/>
+        <result property="gcNo" column="gc_no"/>
+        <result property="shEvt" column="sh_evt"/>
+        <result property="linePointUD1" column="line_point_ud1"/>
+        <result property="linePointUD2" column="line_point_ud2"/>
+        <result property="linePointLR1" column="line_point_lr1"/>
+        <result property="linePointLR2" column="line_point_lr2"/>
+        <result property="curveX1" column="curve_x1"/>
+        <result property="curveY1" column="curve_y1"/>
+        <result property="curveX2" column="curve_x2"/>
+        <result property="curveY2" column="curve_y2"/>
+        <result property="lineStyle" column="line_style"/>
+        <result property="lineColor" column="line_color"/>
+        <result property="pollingColor" column="polling_color"/>
+        <result property="lineTrafficEffect" column="line_traffic_effect"/>
+        <result property="lineTrafficEffectSpeed" column="line_traffic_effect_speed"/>
+        <result property="lineFlowEffect" column="line_flow_effect"/>
+        <result property="lineFlowEffectSpeed" column="line_flow_effect_speed"/>
+        <result property="lineFlowEffectCount" column="line_flow_effect_count"/>
+        <result property="lineFlowEffectColor" column="line_flow_effect_color"/>
+        <result property="lineLabelConf" column="line_label_conf"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.TopoItemDto" id="resultPointInfo">
+        <result property="uniqId" column="uniq_id"/>
+        <result property="itemName" column="item_name"/>
+        <result property="xpoint" column="xpoint"/>
+        <result property="ypoint" column="ypoint"/>
+        <result property="itemNo" column="item_no"/>
+        <result property="grpNo" column="grp_no"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="devKind1" column="dev_kind1"/>
+        <result property="devKind2" column="dev_kind2"/>
+        <result property="usrKind" column="usr_kind"/>
+        <result property="itemSize" column="item_size"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="itemAlias" column="item_alias"/>
+        <result property="fontSize" column="font_size"/>
+        <result property="evtLevel" column="evt_level"/>
+        <result property="engNo" column="eng_no"/>
+        <result property="evtType" column="evt_type"/>
+        <result property="childCnt" column="child_cnt"/>
+        <result property="temp1" column="temp1"/>
+        <result property="temp2" column="temp2"/>
+        <result property="temp3" column="temp3"/>
+    </resultMap>
+
+    <!-- 회선 추가 -->
+    <insert id="insertLink">
+        <selectKey keyProperty="linkNo" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(link_no), 0) + 1 FROM cm_topo_link WHERE user_id = <include refid="selectMapUserId"/>
+        </selectKey>
+        INSERT INTO cm_topo_link (
+            user_id, grp_no, item_no1, item_no2, link_no, mng_no1, mng_no2,
+            if_idx1, sh_evt, link_idx1, link_idx2, is_main, traffic1, traffic2,
+            traffic_type1, traffic_type2, evt_level1, evt_level2,
+            line_type, is_multi, line_size, line_style,
+            line_color, polling_color,
+            curve_x1, curve_y1, curve_x2, curve_y2,
+            line_point_ud1, line_point_ud2,
+            line_point_lr1, line_point_lr2,
+            line_traffic_effect, line_traffic_effect_speed,
+            line_flow_effect, line_flow_effect_speed, line_flow_effect_count, line_flow_effect_color,
+            line_label_conf
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>, #{grpNo}, #{itemNo1}, #{itemNo2}, #{linkNo}, #{mngNo1}, #{mngNo2},
+            0, 1, 0, 0, 0, 0, 0,
+            <choose>
+                <when test="isMain == '1'">
+                    'A', 'A',
+                </when>
+                <otherwise>
+                    'I', 'I',
+                </otherwise>
+            </choose>
+            0, 0,
+            #{lineType}, #{isMulti}, #{lineSize}, #{lineStyle},
+            #{lineColor}, #{pollingColor},
+            #{curveX1}, #{curveY1}, #{curveX2}, #{curveY2},
+            #{linePointUD1}, #{linePointUD2}, #{linePointLR1}, #{linePointLR2},
+            #{lineTrafficEffect}, #{lineTrafficEffectSpeed}, #{lineFlowEffect},
+            #{lineFlowEffectSpeed}, #{lineFlowEffectCount}, #{lineFlowEffectColor},
+            #{lineLabelConf}
+        )
+    </insert>
+
+    <!-- 멀티회선 추가 -->
+    <insert id="insertMultiLink">
+        <selectKey keyProperty="linkNo" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(link_no), 0) + 1 FROM cm_topo_link WHERE user_id = <include refid="selectMapUserId"/>
+        </selectKey>
+        INSERT INTO cm_topo_link (
+            user_id,
+            grp_no, if_idx1, line_size, line_type, sh_evt,
+            item_no1, item_no2, link_no,
+            evt_level1, evt_level2, link_idx1, link_idx2,
+            is_main, is_multi, traffic1, traffic2, traffic_type1, traffic_type2
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>,
+            #{grpNo}, 0, 5, 1, 1,
+            #{itemNo1}, #{itemNo2}, #{linkNo},
+            0, 0, 0, 0,
+            0, 1, null, null, 'A', 'A'
+        )
+    </insert>
+
+    <!-- 회선 정보 조회 -->
+    <select id="selectLinkInfo" resultMap="resultLinkInfo">
+        SELECT  link_no,
+                mng_no1,
+                mng_no2,
+                if_idx1,
+                if_idx2,
+                item_no1,
+                item_no2,
+                evt_level1,
+                evt_level2,
+                COALESCE(line_width1, 0) AS line_width1,
+                COALESCE(line_width2, 0) AS line_width2,
+                link_name1,
+                link_name2,
+                COALESCE(link_idx1, 0) AS link_idx1,
+                COALESCE(link_idx2, 0) AS link_idx2,
+                COALESCE(traffic_type1, 'I') AS traffic_type1,
+                COALESCE(traffic_type2, 'I') AS traffic_type2,
+                COALESCE(traffic1, 0) AS traffic1,
+                COALESCE(traffic2, 0) AS traffic2,
+                point1,
+                point2,
+                point3,
+                is_main,
+                is_multi,
+                COALESCE(line_size, 1) AS line_size,
+                COALESCE(line_type, 1) AS line_type,
+                gc_no,
+                sh_evt,
+                COALESCE(line_point_ud1, 0) AS line_point_ud1,
+                COALESCE(line_point_ud2, 0) AS line_point_ud2,
+                COALESCE(line_point_lr1, 0) AS line_point_lr1,
+                COALESCE(line_point_lr2, 0) AS line_point_lr2,
+                curve_x1,
+                curve_y1,
+                curve_x2,
+                curve_y2,
+                COALESCE(line_style, '') AS line_style,
+                line_color,
+                polling_color,
+                COALESCE(line_traffic_effect, 'None') AS line_traffic_effect,
+                CASE WHEN COALESCE(line_traffic_effect_speed, 0) = 0 THEN 1 ELSE line_traffic_effect_speed END AS line_traffic_effect_speed,
+                COALESCE(line_flow_effect, 'None') AS line_flow_effect,
+                CASE WHEN COALESCE(line_flow_effect_speed, 0) = 0 THEN 1 ELSE line_flow_effect_speed END AS line_flow_effect_speed,
+                CASE WHEN COALESCE(line_flow_effect_count, 0) = 0 THEN 1 ELSE line_flow_effect_count END AS line_flow_effect_count,
+                line_flow_effect_color,
+                line_label_conf
+        FROM    cm_topo_link
+        WHERE   grp_no = #{grpNo}
+        <choose>
+            <when test="_parameter.containsKey('list')">
+                AND link_no IN (<foreach collection="list" item="item" separator=",">#{item.linkNo}</foreach>)
+            </when>
+            <otherwise>
+                AND link_no = #{linkNo}
+            </otherwise>
+        </choose>
+        AND     user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- 포인트 정보 조회 -->
+    <select id="selectPointInfo" resultMap="resultPointInfo">
+        SELECT  A.uniq_id, A.item_alias AS item_name,
+                COALESCE(A.xpoint, 950) AS xpoint, COALESCE(A.ypoint, 650) AS ypoint,
+                A.item_no, A.grp_no, A.mng_no, A.dev_kind1, A.dev_kind2, A.usr_kind,
+                COALESCE(A.item_size, 3) AS item_size, '' AS dev_ip, A.item_alias,
+                COALESCE(A.font_size, 2) AS font_size, COALESCE(A.evt_level, 4) AS evt_level,
+                0 AS eng_no, A.evt_type,
+                0 AS child_cnt,
+                A.temp1, A.temp2, A.temp3
+        FROM    cm_topo_item A
+        WHERE   A.dev_kind1 = 'POINT'
+        AND     A.grp_no = #{grpNo}
+        AND     item_no IN (<foreach collection="pointList" item="item" separator=",">#{item}</foreach>)
+        AND     A.user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- 회선 스타일 변경 -->
+    <update id="updateLinkStyle">
+        UPDATE  cm_topo_link
+        SET     line_color = #{lineColor},
+                polling_color = #{pollingColor},
+                line_size = #{lineSize},
+                line_style = #{lineStyle},
+                line_point_ud1 = #{linePointUD1},
+                line_point_ud2 = #{linePointUD2},
+                line_point_lr1 = #{linePointLR1},
+                line_point_lr2 = #{linePointLR2},
+                line_traffic_effect = #{lineTrafficEffect},
+                line_traffic_effect_speed = #{lineTrafficEffectSpeed},
+                line_flow_effect = #{lineFlowEffect},
+                line_flow_effect_speed = #{lineFlowEffectSpeed},
+                line_flow_effect_count = #{lineFlowEffectCount},
+                line_flow_effect_color = #{lineFlowEffectColor},
+                line_label_conf = #{lineLabelConf}
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     link_no IN (
+            <foreach collection="linkNos" item="linkNo" separator=",">
+                #{linkNo}
+            </foreach>
+        )
+        AND     grp_no = #{grpNo}
+    </update>
+
+    <!-- 그룹 전체 회선 스타일 변경 -->
+    <update id="updateLinkStyleByGrp">
+        UPDATE  cm_topo_link
+        SET     line_color = #{lineColor},
+                polling_color = #{pollingColor},
+                line_size = #{lineSize},
+                line_style = #{lineStyle},
+                line_traffic_effect = #{lineTrafficEffect},
+                line_traffic_effect_speed = #{lineTrafficEffectSpeed},
+                line_flow_effect = #{lineFlowEffect},
+                line_flow_effect_speed = #{lineFlowEffectSpeed},
+                line_flow_effect_count = #{lineFlowEffectCount},
+                line_flow_effect_color = #{lineFlowEffectColor},
+                line_label_conf = #{lineLabelConf}
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     grp_no = #{grpNo}
+    </update>
+
+    <!-- 복사 포인트 아이템 정보 조회 -->
+    <select id="selectCopyPointItemInfo" resultMap="resultPointInfo">
+        SELECT  item_no
+        FROM    cm_topo_item
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     grp_no = #{grpNo}
+        <if test="_parameter.containsKey('mngNoList') and mngNoList.length != 0">
+            AND mng_no IN (
+                <foreach collection="mngNoList" item="item" separator=",">
+                    #{item}
+                </foreach>
+            )
+        </if>
+    </select>
+
+    <!-- 자동 연결 회선 추가 -->
+    <insert id="insertAutoLink">
+        <selectKey keyProperty="linkNo" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(link_no), 0) + 1 FROM cm_topo_link WHERE user_id = <include refid="selectMapUserId"/>
+        </selectKey>
+        INSERT INTO cm_topo_link (
+            user_id, grp_no, mng_no1, mng_no2, item_no1, item_no2, link_no,
+            if_idx1, if_idx2, link_name1, link_name2,
+            sh_evt, link_idx1, link_idx2, is_main, traffic1, traffic2,
+            traffic_type1, traffic_type2, evt_level1, evt_level2,
+            line_type, is_multi, line_size, line_style,
+            line_color, polling_color,
+            curve_x1, curve_y1, curve_x2, curve_y2,
+            line_point_ud1, line_point_ud2,
+            line_point_lr1, line_point_lr2,
+            line_traffic_effect, line_traffic_effect_speed,
+            line_flow_effect, line_flow_effect_speed, line_flow_effect_count, line_flow_effect_color,
+            line_label_conf
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>, #{grpNo}, #{mngNo1}, #{mngNo2}, #{itemNo1}, #{itemNo2}, #{linkNo},
+            #{ifIdx1}, #{ifIdx2}, #{ifName1}, #{ifName2},
+            1, 0, 0, 0, null, null,
+            <choose>
+                <when test="isMain == '1'">
+                    'A', 'A',
+                </when>
+                <otherwise>
+                    'I', 'I',
+                </otherwise>
+            </choose>
+            0, 0,
+            #{lineType}, #{isMulti}, #{lineSize}, #{lineStyle},
+            #{lineColor}, #{pollingColor},
+            #{curveX1}, #{curveY1}, #{curveX2}, #{curveY2},
+            #{linePointUD1}, #{linePointUD2}, #{linePointLR1}, #{linePointLR2},
+            #{lineTrafficEffect}, #{lineTrafficEffectSpeed}, #{lineFlowEffect},
+            #{lineFlowEffectSpeed}, #{lineFlowEffectCount}, #{lineFlowEffectColor},
+            #{lineLabelConf}
+        )
+    </insert>
+
+</mapper>

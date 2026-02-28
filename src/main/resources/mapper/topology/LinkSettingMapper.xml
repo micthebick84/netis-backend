@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.LinkSettingMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapDevDto" id="resultDev">
+        <result property="mngNo" column="mng_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="devKind1" column="dev_kind1"/>
+        <result property="devKind2" column="dev_kind2"/>
+        <result property="devKind1Str" column="dev_kind1_str"/>
+        <result property="devKind2Str" column="dev_kind2_str"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapLineDto" id="resultIf">
+        <result property="ifName" column="if_name"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="ifIdx" column="if_idx"/>
+        <result property="ifAlias" column="if_alias"/>
+        <result property="lineWidth" column="line_width"/>
+        <result property="status" column="status"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.LinkPollingDto" id="resultMultiLinkPolling">
+        <result property="mngNo" column="mng_no"/>
+        <result property="ifIdx" column="if_idx"/>
+        <result property="devName" column="dev_name"/>
+        <result property="ifName" column="if_name"/>
+        <result property="ifAlias" column="if_alias"/>
+        <result property="lineWidth" column="line_width"/>
+        <result property="status" column="status"/>
+        <result property="trafficType" column="traffic_type"/>
+    </resultMap>
+
+    <!-- 장비(서버) 조회 -->
+    <select id="selectDevList" resultMap="resultDev">
+        <choose>
+            <when test="isAll == true">
+                SELECT  mng_no, dev_name, dev_ip, A.dev_kind1, A.dev_kind2, '' AS dev_type,
+                        (SELECT code_nm FROM tb_com_code
+                          WHERE p_code_id IN (SELECT code_id FROM tb_com_code WHERE 1=1 AND code_cd = 'DEV_TYPE')
+                            AND code_cd = dev_kind1) AS dev_kind1_str,
+                        (SELECT code_nm FROM tb_com_code
+                          WHERE p_code_id IN (SELECT code_id FROM tb_com_code WHERE code_cd = A.dev_kind1)
+                          AND code_cd = A.dev_kind2) AS dev_kind2_str
+                FROM    cm_dev10 A, nt_cfg_leaf B
+                WHERE   A.grp_no = B.sub_no
+                AND     B.grp_no IN (
+                    SELECT  nt_grp_no
+                    FROM    com_auth_group_subgrp
+                    WHERE   auth_grp_no = #{authGrpNo}
+                )
+            </when>
+            <otherwise>
+                SELECT  B.mng_no,
+                        CASE WHEN B.user_dev_name IS NULL OR B.user_dev_name = '' THEN B.dev_name ELSE B.user_dev_name END AS dev_name,
+                        dev_ip, B.dev_kind1, B.dev_kind2,
+                        CC10.code_value1 AS dev_type,
+                        (SELECT code_nm FROM tb_com_code
+                          WHERE p_code_id IN (SELECT code_id FROM tb_com_code WHERE 1=1 AND code_cd = 'DEV_TYPE')
+                            AND code_cd = B.dev_kind1) AS dev_kind1_str,
+                        (SELECT code_nm FROM tb_com_code
+                          WHERE p_code_id IN (SELECT code_id FROM tb_com_code WHERE code_cd = B.dev_kind1)
+                          AND code_cd = B.dev_kind2) AS dev_kind2_str
+                FROM    (
+                    SELECT  mng_no, dev_kind1
+                    FROM    cm_topo_item
+                    WHERE   user_id = <include refid="selectMapUserId"/>
+                    <choose>
+                        <when test="devKind1 == 'GRP'">
+                            AND grp_no IN (
+                                SELECT  sub_no
+                                FROM    cm_topo_leaf
+                                WHERE   user_id = <include refid="selectMapUserId"/>
+                                AND     grp_no = (
+                                    SELECT  mng_no
+                                    FROM    cm_topo_item
+                                    WHERE   user_id = <include refid="selectMapUserId"/>
+                                    AND     item_no = #{itemNo}
+                                    AND     dev_kind1 = 'GRP'
+                                )
+                            )
+                        </when>
+                        <when test="_parameter.containsKey('itemNo') and itemNo != null and itemNo != ''">
+                            AND item_no = #{itemNo}
+                        </when>
+                    </choose>
+                ) A, cm_dev10 B, cm_code10 CC10
+                WHERE   A.mng_no = B.mng_no
+                AND     A.dev_kind1 IN ('DEV', 'SVR', 'VSVR')
+                AND     B.dev_kind1 = CC10.code_id
+                AND     CC10.code_kind = 'SRC_TYPE'
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 회선(인터페이스) 조회 -->
+    <select id="selectIfList" resultMap="resultIf">
+        <choose>
+            <when test="_parameter.containsKey('devKind1') and devKind1 != null and devKind1 == 'DEV'">
+                SELECT  CASE WHEN A.user_if_name IS NULL OR A.user_if_name = '' THEN A.if_name ELSE A.user_if_name END AS if_name,
+                        A.mng_no,
+                        A.if_idx,
+                        A.if_alias,
+                        A.line_width_val AS line_width,
+                        A.status
+                FROM    (SELECT CD20.*,
+                            CASE WHEN CD20.user_line_width_poll = 1 THEN COALESCE(CD20.user_line_width, 0) ELSE COALESCE(CD20.line_width, 0) END AS line_width_val
+                        FROM cm_dev20 CD20) A
+                WHERE   A.mng_no = #{mngNo}
+            </when>
+            <when test="_parameter.containsKey('devKind1') and devKind1 != null and devKind1 == 'SVR'">
+                SELECT  name AS if_name,
+                        mng_no,
+                        if_idx,
+                        name AS if_alias,
+                        COALESCE(band_width, 0) AS line_width,
+                        '' AS status
+                FROM    nt_svr_network
+                WHERE   mng_no = #{mngNo}
+                AND     last_upd BETWEEN CURRENT_TIMESTAMP - INTERVAL '15 minutes' AND CURRENT_TIMESTAMP
+            </when>
+            <when test="_parameter.containsKey('devKind1') and devKind1 != null and devKind1 == 'VSVR' and _parameter.containsKey('devKind2') and devKind2 != null and devKind2 == 'VHOST_ESXI'">
+                SELECT  device_name AS if_name,
+                        mng_no,
+                        0 AS if_idx,
+                        device_name AS if_alias,
+                        0 AS line_width,
+                        '' AS status
+                FROM    esxi_hostsystem_pnic
+                WHERE   mng_no = #{mngNo}
+            </when>
+            <otherwise>
+                SELECT  network_name AS if_name,
+                        mng_no,
+                        0 AS if_idx,
+                        network_name AS if_alias,
+                        0 AS line_width,
+                        '' AS status
+                FROM    esxi_virtualmachine_network
+                WHERE   mng_no = #{mngNo}
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 회선 폴링 설정 -->
+    <update id="updateLinkPolling">
+        UPDATE  cm_topo_link
+        SET
+        <choose>
+            <when test="_parameter.containsKey('idx1') and idx1 != -1">
+                mng_no1 = #{mngNo1},
+                if_idx1 = #{ifIdx1},
+                link_name1 = #{ifName1},
+                line_width1 = #{lineWidth1},
+                traffic_type1 = #{trafficType1},
+                evt_level1 = 1,
+            </when>
+            <otherwise>
+                mng_no1 = NULL,
+                if_idx1 = NULL,
+                link_name1 = NULL,
+                line_width1 = NULL,
+                traffic_type1 = 'I',
+                traffic1 = NULL,
+                evt_level1 = NULL,
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="_parameter.containsKey('idx2') and idx2 != -1">
+                mng_no2 = #{mngNo2},
+                if_idx2 = #{ifIdx2},
+                link_name2 = #{ifName2},
+                line_width2 = #{lineWidth2},
+                traffic_type2 = #{trafficType2},
+                evt_level2 = 1,
+            </when>
+            <otherwise>
+                mng_no2 = NULL,
+                if_idx2 = NULL,
+                link_name2 = NULL,
+                line_width2 = NULL,
+                traffic_type2 = 'I',
+                traffic2 = NULL,
+                evt_level2 = NULL,
+            </otherwise>
+        </choose>
+        polling_color = (SELECT polling_color FROM cm_topo_user WHERE user_id = <include refid="selectMapUserId"/>)
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     link_no = #{linkNo}
+    </update>
+
+    <!-- 멀티회선 폴링 정보 조회 -->
+    <select id="selectMultiLinkPollingList" resultMap="resultMultiLinkPolling">
+        SELECT  A.mng_no,
+                A.if_idx,
+                CASE WHEN B.user_dev_name IS NULL OR B.user_dev_name = '' THEN B.dev_name ELSE B.user_dev_name END AS dev_name,
+                if_name,
+                A.line_width,
+                if_alias,
+                status,
+                traffic,
+                COALESCE(traffic_type, 'I') AS traffic_type
+        FROM    cm_topo_link_multi A, cm_dev10 B, cm_dev20 C
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     item_no = #{itemNo}
+        AND     link_no = #{linkNo}
+        AND     A.mng_no = B.mng_no
+        AND     A.mng_no = C.mng_no
+        AND     A.if_idx = C.if_idx
+        ORDER BY dev_name, if_name
+    </select>
+
+    <!-- 멀티회선 폴링 삭제 -->
+    <delete id="deleteMultiLinkPolling">
+        DELETE
+        FROM    cm_topo_link_multi
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     link_no = #{linkNo}
+        AND     item_no = #{itemNo}
+    </delete>
+
+    <!-- 멀티회선 폴링 저장 -->
+    <insert id="insertMultiLinkPolling">
+        <foreach collection="linkList" item="item" separator=";">
+            INSERT INTO cm_topo_link_multi (
+                user_id,
+                item_no, mng_no, if_idx, evt_level,
+                line_width, link_no, traffic, traffic_type
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                #{itemNo}, #{item.mngNo}, #{item.ifIdx}, 1,
+                #{item.lineWidth}, #{linkNo}, 0, #{item.trafficType}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 회선 정보 수정 -->
+    <update id="updateLinkInfo">
+        UPDATE  cm_topo_link
+        SET     link_idx${idx} = #{cnt},
+                evt_level${idx} = 1,
+                traffic${idx} = 0,
+                traffic_type${idx} = #{trafficType}
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     link_no = #{linkNo}
+        AND     item_no${idx} = #{itemNo}
+    </update>
+
+</mapper>

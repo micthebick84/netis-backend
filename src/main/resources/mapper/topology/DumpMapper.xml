@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.DumpMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <!-- ==================== Export (bulk SELECT) ==================== -->
+
+    <select id="selectGroupAll" resultType="HashMap">
+        SELECT  USER_ID, GRP_NO, GRP_NAME, GRP_PARENT, BG_FILE_NM, GIS_ZOOM, GIS_LAT, GIS_LNT
+        FROM    CM_TOPO_GROUP
+        WHERE   USER_ID = #{userId}
+    </select>
+
+    <select id="selectItemAll" resultType="HashMap">
+        SELECT  USER_ID, GRP_NO, ITEM_NO, ITEM_TYPE, ITEM_SUB_TYPE, MNG_NO,
+                XPOINT, YPOINT, ITEM_SIZE, SH_EVT, ITEM_SUB_KIND, ITEM_FILE_NAME,
+                ITEM_ALIAS, USER_CONTENT, FONT_SIZE, EVT_LEVEL, DEV_KIND1, DEV_KIND2,
+                USR_KIND, GC_NO, UNIQ_ID, EVT_TYPE, TEMP1, TEMP2, TEMP3, SHOW_LABEL
+        FROM    CM_TOPO_ITEM
+        WHERE   USER_ID = #{userId}
+    </select>
+
+    <select id="selectEtcAll" resultType="HashMap">
+        SELECT  USER_ID, ITEM_NO, DEV_NAME, DEV_IP, ICMP_POLLING, URL
+        FROM    CM_TOPO_ETC
+        WHERE   USER_ID = #{userId}
+    </select>
+
+    <select id="selectLinkAll" resultType="HashMap">
+        SELECT  USER_ID, GRP_NO, MNG_NO1, IF_IDX1, URL, LINE_SIZE,
+                LINE_TYPE, SH_EVT, ITEM_NO1, ITEM_NO2, EVT_LEVEL1,
+                POINT1, POINT2, LINE_WIDTH1, LINK_IDX1, LINK_NO,
+                MNG_NO2, IF_IDX2, EVT_LEVEL2, LINE_WIDTH2,
+                LINK_NAME1, LINK_NAME2, IS_MAIN, GC_NO,
+                TRAFFIC1, TRAFFIC2, IS_MULTI, LINK_IDX2,
+                TRAFFIC_TYPE1, TRAFFIC_TYPE2,
+                LINE_POINT_UD1, LINE_POINT_LR1,
+                LINE_POINT_UD2, LINE_POINT_LR2, POINT3,
+                USER_POLL_LINE_COLOR1, USER_POLL_LINE_COLOR2,
+                CURVE_X1, CURVE_Y1, CURVE_X2, CURVE_Y2,
+                LINE_STYLE, LINE_COLOR, POLLING_COLOR,
+                TRAFFIC1_IN, TRAFFIC1_OUT, TRAFFIC2_IN, TRAFFIC2_OUT
+        FROM    CM_TOPO_LINK
+        WHERE   USER_ID = #{userId}
+    </select>
+
+    <select id="selectLinkMultiAll" resultType="HashMap">
+        SELECT  USER_ID, ITEM_NO, MNG_NO, IF_IDX, EVT_LEVEL,
+                LINE_WIDTH, LINK_NO, LINK_NAME, TRAFFIC,
+                TRAFFIC_TYPE, DASH_KEY
+        FROM    CM_TOPO_LINK_MULTI
+        WHERE   USER_ID = #{userId}
+    </select>
+
+    <select id="selectUserAll" resultType="HashMap">
+        SELECT  USER_ID, LEGEND_TRAFFIC, LEGEND_ERR, LEGEND_DETAIL,
+                TRAFFIC_X, TRAFFIC_Y, ERR_X, ERR_Y, DETAIL_X, DETAIL_Y,
+                SHOW_IP, SHOW_BALLOON,
+                TR_LMT1, TR_LMT2, TR_LMT3, TR_LMT4,
+                TR_RGB1, TR_RGB2, TR_RGB3, TR_RGB4, TR_RGB5,
+                ER_RGB1, ER_RGB2, ER_RGB3, ER_RGB4, ER_RGB5,
+                VW_ROUTER, VW_SWITCH, VW_SERVER, VW_SUB, VW_LINK, VW_ETC,
+                LK_LMT1, LK_LMT2, LK_LMT3, LK_RGB1, LK_RGB2, LK_RGB3, LK_RGB4,
+                SHOW_EVT_LEVEL, REFRESH_TIME, IS_BLANK_EVT,
+                SHOW_LABEL, SHOW_LABEL_RACK, LINE_COLOR, POLLING_COLOR,
+                ALARM_CHK, ALARM_LV1_CHK, ALARM_LV2_CHK, ALARM_LV3_CHK, ALARM_LV4_CHK, ALARM_LV5_CHK,
+                ALARM_LV1_PATH, ALARM_LV2_PATH, ALARM_LV3_PATH, ALARM_LV4_PATH, ALARM_LV5_PATH,
+                FONT_COLOR, FONT_BG_COLOR
+        FROM    CM_TOPO_USER
+        WHERE   USER_ID = #{userId}
+    </select>
+
+    <select id="selectDrawToolAll" resultType="HashMap">
+        SELECT  DRAW_NO, USER_ID, GRP_NO, DEV_KIND1, DEV_KIND2,
+                POS_X, POS_Y, WIDTH, HEIGHT,
+                FILL_COLOR, FILL_OPACITY, STROKE_COLOR, STROKE_OPACITY,
+                STROKE_WIDTH, CORNER_RADIUS, FONT_SIZE, FONT_WEIGHT,
+                TEXT_ANCHOR, TEXT_CONTENT, RX, RY, SORT_IDX
+        FROM    CM_TOPO_DRAW_TOOL
+        WHERE   USER_ID = #{userId}
+    </select>
+
+    <!-- ==================== Import (delete + bulk INSERT) ==================== -->
+
+    <delete id="deleteTopology">
+        DELETE FROM CM_TOPO_GROUP WHERE USER_ID = #{userId};
+        DELETE FROM CM_TOPO_LEAF WHERE USER_ID = #{userId};
+        DELETE FROM CM_TOPO_ITEM WHERE USER_ID = #{userId};
+        DELETE FROM CM_TOPO_ETC WHERE USER_ID = #{userId};
+        DELETE FROM CM_TOPO_LINK WHERE USER_ID = #{userId};
+        DELETE FROM CM_TOPO_LINK_MULTI WHERE USER_ID = #{userId};
+        DELETE FROM CM_TOPO_USER WHERE USER_ID = #{userId};
+        DELETE FROM CM_TOPO_DRAW_TOOL WHERE USER_ID = #{userId}
+    </delete>
+
+    <insert id="insertGroup">
+        INSERT INTO CM_TOPO_GROUP (
+            USER_ID, GRP_NO, GRP_NAME, GRP_PARENT, BG_FILE_NM, GIS_ZOOM, GIS_LAT, GIS_LNT
+        )
+        VALUES
+        <foreach collection="groupList" item="item" separator=",">
+            (#{userId}, CAST(#{item.GRP_NO} AS BIGINT), #{item.GRP_NAME}, CAST(#{item.GRP_PARENT} AS BIGINT),
+            #{item.BG_FILE_NM}, CAST(#{item.GIS_ZOOM} AS NUMERIC), CAST(#{item.GIS_LAT} AS NUMERIC(14,9)), CAST(#{item.GIS_LNT} AS NUMERIC(12,7)))
+        </foreach>
+    </insert>
+
+    <insert id="insertItem">
+        INSERT INTO CM_TOPO_ITEM (
+            USER_ID, GRP_NO, ITEM_NO, ITEM_TYPE, ITEM_SUB_TYPE, MNG_NO,
+            XPOINT, YPOINT, ITEM_SIZE, SH_EVT, ITEM_SUB_KIND, ITEM_FILE_NAME,
+            ITEM_ALIAS, USER_CONTENT, FONT_SIZE, EVT_LEVEL, DEV_KIND1, DEV_KIND2,
+            USR_KIND, GC_NO, UNIQ_ID, EVT_TYPE, TEMP1, TEMP2, TEMP3, SHOW_LABEL
+        )
+        VALUES
+        <foreach collection="itemList" item="item" separator=",">
+            (#{userId}, CAST(#{item.GRP_NO} AS BIGINT), CAST(#{item.ITEM_NO} AS BIGINT), #{item.ITEM_TYPE}, #{item.ITEM_SUB_TYPE}, CAST(#{item.MNG_NO} AS BIGINT),
+            CAST(#{item.XPOINT} AS NUMERIC), CAST(#{item.YPOINT} AS NUMERIC), CAST(#{item.ITEM_SIZE} AS NUMERIC), CAST(#{item.SH_EVT} AS INTEGER),
+            #{item.ITEM_SUB_KIND}, #{item.ITEM_FILE_NAME},
+            #{item.ITEM_ALIAS}, #{item.USER_CONTENT}, CAST(#{item.FONT_SIZE} AS NUMERIC), CAST(#{item.EVT_LEVEL} AS NUMERIC), #{item.DEV_KIND1}, #{item.DEV_KIND2},
+            #{item.USR_KIND}, CAST(#{item.GC_NO} AS BIGINT), CAST(#{item.UNIQ_ID} AS BIGINT), CAST(#{item.EVT_TYPE} AS NUMERIC), #{item.TEMP1}, #{item.TEMP2}, #{item.TEMP3},
+            CAST(#{item.SHOW_LABEL} AS NUMERIC))
+        </foreach>
+    </insert>
+
+    <insert id="insertEtc">
+        INSERT INTO CM_TOPO_ETC (
+            USER_ID, ITEM_NO, DEV_NAME, DEV_IP, ICMP_POLLING, URL
+        )
+        VALUES
+        <foreach collection="etcList" item="item" separator=",">
+            (#{userId}, CAST(#{item.ITEM_NO} AS BIGINT), #{item.DEV_NAME}, #{item.DEV_IP}, #{item.ICMP_POLLING}, #{item.URL})
+        </foreach>
+    </insert>
+
+    <insert id="insertLink">
+        INSERT INTO CM_TOPO_LINK (
+            USER_ID, GRP_NO, MNG_NO1, IF_IDX1, URL, LINE_SIZE,
+            LINE_TYPE, SH_EVT, ITEM_NO1, ITEM_NO2, EVT_LEVEL1,
+            POINT1, POINT2, LINE_WIDTH1, LINK_IDX1, LINK_NO,
+            MNG_NO2, IF_IDX2, EVT_LEVEL2, LINE_WIDTH2,
+            LINK_NAME1, LINK_NAME2, IS_MAIN, GC_NO,
+            TRAFFIC1, TRAFFIC2, IS_MULTI, LINK_IDX2,
+            TRAFFIC_TYPE1, TRAFFIC_TYPE2, LINE_POINT_UD1, LINE_POINT_LR1,
+            LINE_POINT_UD2, LINE_POINT_LR2, POINT3,
+            USER_POLL_LINE_COLOR1, USER_POLL_LINE_COLOR2,
+            CURVE_X1, CURVE_Y1, CURVE_X2, CURVE_Y2,
+            LINE_STYLE, LINE_COLOR, POLLING_COLOR,
+            TRAFFIC1_IN, TRAFFIC1_OUT, TRAFFIC2_IN, TRAFFIC2_OUT
+        )
+        VALUES
+        <foreach collection="linkList" item="item" separator=",">
+            (#{userId}, CAST(#{item.GRP_NO} AS BIGINT), CAST(#{item.MNG_NO1} AS BIGINT), CAST(#{item.IF_IDX1} AS BIGINT), #{item.URL}, CAST(#{item.LINE_SIZE} AS NUMERIC),
+            CAST(#{item.LINE_TYPE} AS NUMERIC), CAST(#{item.SH_EVT} AS NUMERIC), CAST(#{item.ITEM_NO1} AS BIGINT), CAST(#{item.ITEM_NO2} AS BIGINT), CAST(#{item.EVT_LEVEL1} AS NUMERIC),
+            CAST(#{item.POINT1} AS NUMERIC), CAST(#{item.POINT2} AS NUMERIC), CAST(#{item.LINE_WIDTH1} AS NUMERIC(20,0)), CAST(#{item.LINK_IDX1} AS NUMERIC), CAST(#{item.LINK_NO} AS BIGINT),
+            CAST(#{item.MNG_NO2} AS BIGINT), CAST(#{item.IF_IDX2} AS BIGINT), CAST(#{item.EVT_LEVEL2} AS NUMERIC), CAST(#{item.LINE_WIDTH2} AS NUMERIC(20,0)),
+            #{item.LINK_NAME1}, #{item.LINK_NAME2}, CAST(#{item.IS_MAIN} AS NUMERIC), CAST(#{item.GC_NO} AS BIGINT),
+            CAST(#{item.TRAFFIC1} AS NUMERIC(20,0)), CAST(#{item.TRAFFIC2} AS NUMERIC(20,0)), CAST(#{item.IS_MULTI} AS NUMERIC), CAST(#{item.LINK_IDX2} AS NUMERIC),
+            #{item.TRAFFIC_TYPE1}, #{item.TRAFFIC_TYPE2}, CAST(#{item.LINE_POINT_UD1} AS NUMERIC), CAST(#{item.LINE_POINT_LR1} AS NUMERIC),
+            CAST(#{item.LINE_POINT_UD2} AS NUMERIC), CAST(#{item.LINE_POINT_LR2} AS NUMERIC), CAST(#{item.POINT3} AS NUMERIC),
+            #{item.USER_POLL_LINE_COLOR1}, #{item.USER_POLL_LINE_COLOR2},
+            CAST(#{item.CURVE_X1} AS NUMERIC), CAST(#{item.CURVE_Y1} AS NUMERIC), CAST(#{item.CURVE_X2} AS NUMERIC), CAST(#{item.CURVE_Y2} AS NUMERIC),
+            #{item.LINE_STYLE}, #{item.LINE_COLOR}, #{item.POLLING_COLOR},
+            CAST(#{item.TRAFFIC1_IN} AS NUMERIC(20,0)), CAST(#{item.TRAFFIC1_OUT} AS NUMERIC(20,0)), CAST(#{item.TRAFFIC2_IN} AS NUMERIC(20,0)), CAST(#{item.TRAFFIC2_OUT} AS NUMERIC(20,0)))
+        </foreach>
+    </insert>
+
+    <insert id="insertLinkMulti">
+        INSERT INTO CM_TOPO_LINK_MULTI (
+            USER_ID, ITEM_NO, MNG_NO, IF_IDX, EVT_LEVEL,
+            LINE_WIDTH, LINK_NO, LINK_NAME, TRAFFIC,
+            TRAFFIC_TYPE, DASH_KEY
+        )
+        VALUES
+        <foreach collection="linkMultiList" item="item" separator=",">
+            (#{userId}, CAST(#{item.ITEM_NO} AS BIGINT), CAST(#{item.MNG_NO} AS BIGINT), CAST(#{item.IF_IDX} AS BIGINT), CAST(#{item.EVT_LEVEL} AS NUMERIC),
+            CAST(#{item.LINE_WIDTH} AS NUMERIC(20,0)), CAST(#{item.LINK_NO} AS BIGINT), #{item.LINK_NAME}, CAST(#{item.TRAFFIC} AS NUMERIC(20,0)),
+            #{item.TRAFFIC_TYPE}, #{item.DASH_KEY})
+        </foreach>
+    </insert>
+
+    <insert id="insertUser">
+        INSERT INTO CM_TOPO_USER (
+            USER_ID, LEGEND_TRAFFIC, LEGEND_ERR, LEGEND_DETAIL, TRAFFIC_X, TRAFFIC_Y,
+            ERR_X, ERR_Y, DETAIL_X, DETAIL_Y, SHOW_IP, SHOW_BALLOON,
+            TR_LMT1, TR_LMT2, TR_LMT3, TR_LMT4,
+            TR_RGB1, TR_RGB2, TR_RGB3, TR_RGB4, TR_RGB5,
+            ER_RGB1, ER_RGB2, ER_RGB3, ER_RGB4, ER_RGB5,
+            VW_ROUTER, VW_SWITCH, VW_SERVER,
+            VW_SUB, VW_LINK, VW_ETC,
+            LK_LMT1, LK_LMT2, LK_LMT3, LK_RGB1, LK_RGB2, LK_RGB3, LK_RGB4,
+            SHOW_EVT_LEVEL, REFRESH_TIME, IS_BLANK_EVT,
+            SHOW_LABEL, SHOW_LABEL_RACK, LINE_COLOR, POLLING_COLOR,
+            ALARM_CHK, ALARM_LV1_CHK, ALARM_LV2_CHK, ALARM_LV3_CHK, ALARM_LV4_CHK, ALARM_LV5_CHK,
+            ALARM_LV1_PATH, ALARM_LV2_PATH, ALARM_LV3_PATH, ALARM_LV4_PATH, ALARM_LV5_PATH,
+            FONT_COLOR, FONT_BG_COLOR
+        )
+        VALUES
+        <foreach collection="userList" item="item" separator=",">
+            (#{userId}, CAST(#{item.LEGEND_TRAFFIC} AS NUMERIC), CAST(#{item.LEGEND_ERR} AS NUMERIC), CAST(#{item.LEGEND_DETAIL} AS NUMERIC), CAST(#{item.TRAFFIC_X} AS NUMERIC), CAST(#{item.TRAFFIC_Y} AS NUMERIC),
+            CAST(#{item.ERR_X} AS NUMERIC), CAST(#{item.ERR_Y} AS NUMERIC), CAST(#{item.DETAIL_X} AS NUMERIC), CAST(#{item.DETAIL_Y} AS NUMERIC), CAST(#{item.SHOW_IP} AS NUMERIC), CAST(#{item.SHOW_BALLOON} AS NUMERIC),
+            CAST(#{item.TR_LMT1} AS NUMERIC), CAST(#{item.TR_LMT2} AS NUMERIC), CAST(#{item.TR_LMT3} AS NUMERIC), CAST(#{item.TR_LMT4} AS NUMERIC),
+            CAST(#{item.TR_RGB1} AS NUMERIC), CAST(#{item.TR_RGB2} AS NUMERIC), CAST(#{item.TR_RGB3} AS NUMERIC), CAST(#{item.TR_RGB4} AS NUMERIC), CAST(#{item.TR_RGB5} AS NUMERIC),
+            CAST(#{item.ER_RGB1} AS NUMERIC), CAST(#{item.ER_RGB2} AS NUMERIC), CAST(#{item.ER_RGB3} AS NUMERIC), CAST(#{item.ER_RGB4} AS NUMERIC), CAST(#{item.ER_RGB5} AS NUMERIC),
+            CAST(#{item.VW_ROUTER} AS NUMERIC), CAST(#{item.VW_SWITCH} AS NUMERIC), CAST(#{item.VW_SERVER} AS NUMERIC),
+            CAST(#{item.VW_SUB} AS NUMERIC), CAST(#{item.VW_LINK} AS NUMERIC), CAST(#{item.VW_ETC} AS NUMERIC),
+            CAST(#{item.LK_LMT1} AS NUMERIC), CAST(#{item.LK_LMT2} AS NUMERIC), CAST(#{item.LK_LMT3} AS NUMERIC), CAST(#{item.LK_RGB1} AS NUMERIC), CAST(#{item.LK_RGB2} AS NUMERIC), CAST(#{item.LK_RGB3} AS NUMERIC), CAST(#{item.LK_RGB4} AS NUMERIC),
+            CAST(#{item.SHOW_EVT_LEVEL} AS NUMERIC), CAST(#{item.REFRESH_TIME} AS NUMERIC), CAST(#{item.IS_BLANK_EVT} AS NUMERIC),
+            CAST(#{item.SHOW_LABEL} AS NUMERIC), CAST(#{item.SHOW_LABEL_RACK} AS NUMERIC), #{item.LINE_COLOR}, #{item.POLLING_COLOR},
+            CAST(#{item.ALARM_CHK} AS NUMERIC), CAST(#{item.ALARM_LV1_CHK} AS NUMERIC), CAST(#{item.ALARM_LV2_CHK} AS NUMERIC), CAST(#{item.ALARM_LV3_CHK} AS NUMERIC), CAST(#{item.ALARM_LV4_CHK} AS NUMERIC), CAST(#{item.ALARM_LV5_CHK} AS NUMERIC),
+            #{item.ALARM_LV1_PATH}, #{item.ALARM_LV2_PATH}, #{item.ALARM_LV3_PATH}, #{item.ALARM_LV4_PATH}, #{item.ALARM_LV5_PATH},
+            #{item.FONT_COLOR}, #{item.FONT_BG_COLOR})
+        </foreach>
+    </insert>
+
+    <insert id="insertDrawTool">
+        INSERT INTO CM_TOPO_DRAW_TOOL (
+            USER_ID, GRP_NO, DEV_KIND1, DEV_KIND2, POS_X, POS_Y,
+            WIDTH, HEIGHT, FILL_COLOR, FILL_OPACITY, STROKE_COLOR, STROKE_OPACITY,
+            STROKE_WIDTH, CORNER_RADIUS, FONT_SIZE, FONT_WEIGHT,
+            TEXT_ANCHOR, TEXT_CONTENT, RX, RY, SORT_IDX
+        )
+        VALUES
+        <foreach collection="drawToolList" item="item" separator=",">
+            (#{userId}, CAST(#{item.GRP_NO} AS BIGINT), #{item.DEV_KIND1}, #{item.DEV_KIND2}, CAST(#{item.POS_X} AS NUMERIC), CAST(#{item.POS_Y} AS NUMERIC),
+            CAST(#{item.WIDTH} AS NUMERIC), CAST(#{item.HEIGHT} AS NUMERIC), #{item.FILL_COLOR}, #{item.FILL_OPACITY}, #{item.STROKE_COLOR}, #{item.STROKE_OPACITY},
+            CAST(#{item.STROKE_WIDTH} AS INTEGER), CAST(#{item.CORNER_RADIUS} AS INTEGER), CAST(#{item.FONT_SIZE} AS INTEGER), #{item.FONT_WEIGHT},
+            #{item.TEXT_ANCHOR}, #{item.TEXT_CONTENT}, CAST(#{item.RX} AS NUMERIC), CAST(#{item.RY} AS NUMERIC), CAST(#{item.SORT_IDX} AS INTEGER))
+        </foreach>
+    </insert>
+
+    <update id="procSpMakeTopoLeaf" statementType="CALLABLE">
+        CALL SP_MAKE_TOPO_LEAF(#{userId})
+    </update>
+
+    <!-- ==================== Dump History ==================== -->
+
+    <insert id="insertDumpXML">
+        <selectKey keyProperty="dumpSeq" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(DUMP_SEQ), 0) + 1 FROM CM_TOPO_DUMP
+        </selectKey>
+        INSERT INTO CM_TOPO_DUMP (
+            DUMP_SEQ, INS_DATE, USER_ID, XML_TEXT, MEMO
+        )
+        VALUES (
+            #{dumpSeq}, CURRENT_TIMESTAMP, #{userId}, #{xmlText, jdbcType=BINARY}, #{memo}
+        )
+    </insert>
+
+    <select id="selectDumpList" resultType="com.example.netisbackend.dto.topology.TopoDumpDto">
+        SELECT  DUMP_SEQ AS "dumpSeq",
+                TO_CHAR(INS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS "insDate",
+                MEMO AS memo
+        FROM    CM_TOPO_DUMP
+        WHERE   USER_ID = #{userId}
+        ORDER BY DUMP_SEQ DESC
+    </select>
+
+    <resultMap id="resultDumpXML" type="HashMap">
+        <result property="xmlText" javaType="[B" column="XML_TEXT" jdbcType="BINARY"/>
+    </resultMap>
+
+    <select id="selectDumpXML" resultMap="resultDumpXML">
+        SELECT  XML_TEXT
+        FROM    CM_TOPO_DUMP
+        WHERE   DUMP_SEQ = #{dumpSeq}
+    </select>
+
+    <!-- ==================== Restore History ==================== -->
+
+    <insert id="insertRestoreHist">
+        INSERT INTO CM_TOPO_RESTORE_HIST (
+            INS_DATE, DUMP_SEQ, REST_USER_ID, REST_USER_IP
+        )
+        VALUES (
+            CURRENT_TIMESTAMP, #{dumpSeq}, #{userId}, #{sessUserIp}
+        )
+    </insert>
+
+    <select id="selectRestoreHist" resultType="com.example.netisbackend.dto.topology.TopoRestHistDto">
+        SELECT  TO_CHAR(A.INS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS "insDate",
+                B.DUMP_SEQ AS "dumpSeq",
+                TO_CHAR(B.INS_DATE, 'YYYY-MM-DD HH24:MI:SS') AS "restDate",
+                B.MEMO AS memo,
+                (SELECT USER_NAME FROM COM_USER WHERE USER_ID = A.REST_USER_ID)
+                    || '(' || A.REST_USER_ID || ')' AS "restUserNm",
+                A.REST_USER_IP AS "restUserIp"
+        FROM    CM_TOPO_RESTORE_HIST A, CM_TOPO_DUMP B
+        WHERE   A.INS_DATE BETWEEN CAST(#{datetime1} AS TIMESTAMP)
+                                AND CAST(#{datetime2} AS TIMESTAMP)
+        AND     A.DUMP_SEQ = B.DUMP_SEQ
+        ORDER BY A.INS_DATE DESC
+    </select>
+
+</mapper>

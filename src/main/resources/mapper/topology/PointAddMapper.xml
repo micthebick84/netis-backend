@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.PointAddMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <!-- ITEM_NO 채번 -->
+    <select id="selectPointItemNo" resultType="long">
+        SELECT  COALESCE(MAX(item_no), 0) + 1
+        FROM    cm_topo_item
+        WHERE   user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- 링크의 포인트 컬럼 업데이트 -->
+    <update id="updateLinkPoint">
+        UPDATE  cm_topo_link
+        SET     point${ptIdx} = #{itemNo}
+        WHERE   user_id = <include refid="selectMapUserId"/>
+        AND     link_no = #{linkNo}
+    </update>
+
+    <!-- 포인트 아이템 INSERT -->
+    <insert id="insertPointItemRecord">
+        INSERT INTO cm_topo_item (
+            user_id,
+            item_no,
+            grp_no,
+            mng_no,
+            dev_kind1,
+            dev_kind2,
+            usr_kind,
+            item_size,
+            xpoint,
+            ypoint
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>,
+            #{itemNo},
+            #{grpNo},
+            0,
+            'POINT',
+            'POINT',
+            'POINT',
+            2,
+            #{xpoint},
+            #{ypoint}
+        )
+    </insert>
+
+</mapper>

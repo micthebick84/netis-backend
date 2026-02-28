@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.DevFindMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapDevFindDto" id="resultDevFind">
+        <result property="grpNo" column="grp_no"/>
+        <result property="itemNo" column="item_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="userDevName" column="user_dev_name"/>
+        <result property="devName" column="dev_name"/>
+        <result property="devKind2" column="dev_kind2"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="evtLevel" column="evt_level"/>
+    </resultMap>
+
+    <!-- 장비찾기 목록 조회 -->
+    <select id="selectDevFindList" resultMap="resultDevFind">
+        SELECT DISTINCT A.*
+        FROM
+        (
+            SELECT  A.grp_no, A.item_no, B.grp_name, C.user_dev_name, C.dev_name,
+                    A.dev_kind2, C.dev_ip, A.evt_level, A.mng_no, A.item_alias
+            FROM    cm_topo_item A, cm_topo_group B, cm_dev10 C
+            WHERE   A.dev_kind1 IN ('DEV', 'APC')
+            AND     A.grp_no = B.grp_no
+            AND     A.mng_no = C.mng_no
+            AND     A.user_id = B.user_id
+            AND     A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            SELECT  A.grp_no, A.item_no, B.grp_name, '' AS user_dev_name, C.sub_name AS dev_name,
+                    A.dev_kind2, C.ip AS dev_ip, A.evt_level, A.mng_no, A.item_alias
+            FROM    cm_topo_item A, cm_topo_group B, nt_cfg_subnet C
+            WHERE   A.dev_kind1 = 'SUB'
+            AND     A.grp_no = B.grp_no
+            AND     A.mng_no = C.sub_no
+            AND     A.user_id = B.user_id
+            AND     A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            SELECT  A.grp_no, A.item_no, B.grp_name, C.user_dev_name, C.dev_name,
+                    A.dev_kind2, C.dev_ip, A.evt_level, A.mng_no, A.item_alias
+            FROM    cm_topo_item A, cm_topo_group B, cm_dev10 C
+            WHERE   A.dev_kind1 IN ('SVR', 'VSVR')
+            AND     A.grp_no = B.grp_no
+            AND     A.mng_no = C.mng_no
+            AND     A.user_id = B.user_id
+            AND     A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            SELECT  A.grp_no, A.item_no, B.grp_name, '' AS user_dev_name, C.dev_name,
+                    A.dev_kind2, C.dev_ip, A.evt_level, A.mng_no, A.item_alias
+            FROM    cm_topo_item A, cm_topo_group B, cm_topo_etc C
+            WHERE   A.dev_kind1 = 'ETC'
+            AND     A.grp_no = B.grp_no
+            AND     A.item_no = C.item_no
+            AND     A.user_id = B.user_id
+            AND     A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            SELECT DISTINCT
+                    A.grp_no, A.item_no, B.grp_name, E.user_dev_name, E.dev_name,
+                    A.dev_kind2, E.dev_ip, A.evt_level, A.mng_no, A.item_alias
+            FROM    cm_topo_item A, cm_topo_group B, s_cm_rack C, s_cm_rack_conf D, cm_dev10 E
+            WHERE   A.mng_no = E.mng_no
+            AND     A.mng_no = D.mng_no
+            AND     C.rack_no = D.rack_no
+            AND     A.grp_no = B.grp_no
+            AND     A.user_id = B.user_id
+            AND     A.dev_kind1 = 'RACK'
+            AND     A.user_id = <include refid="selectMapUserId"/>
+            UNION ALL
+            SELECT DISTINCT
+                    A.grp_no, A.item_no, C.grp_name, '' AS user_dev_name, B.sensor_name AS dev_name,
+                    A.dev_kind2, '' AS dev_ip, A.evt_level, A.mng_no, A.item_alias
+            FROM    cm_topo_item A, cm_fms_sensor B, cm_topo_group C
+            WHERE   A.mng_no = B.mng_no
+            AND     A.dev_kind1 = 'SENSOR'
+            AND     A.temp1 = B.fms_seq_no
+            AND     A.grp_no = C.grp_no
+            AND     A.user_id = C.user_id
+            AND     A.user_id = <include refid="selectMapUserId"/>
+        ) A
+        WHERE 1=1
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND A.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+            AND A.dev_ip LIKE '%' || #{sIp} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND (UPPER(A.item_alias) LIKE '%' || UPPER(#{sDevName}) || '%' OR
+                 UPPER(A.user_dev_name) LIKE '%' || UPPER(#{sDevName}) || '%' OR
+                 UPPER(A.dev_name) LIKE '%' || UPPER(#{sDevName}) || '%')
+        </if>
+        ORDER BY A.grp_name, A.dev_name, A.dev_kind2, A.dev_ip
+    </select>
+
+    <!-- 장비찾기 목록 조회 (school4 권한 필터) -->
+    <select id="selectDevFindListSchool4" resultMap="resultDevFind">
+        SELECT AA.* FROM
+        (
+            SELECT DISTINCT A.*
+            FROM
+            (
+                SELECT  A.grp_no, A.item_no, B.grp_name, COALESCE(NULLIF(C.user_dev_name, ''), C.dev_name) AS dev_name,
+                        A.dev_kind2, C.dev_ip, A.evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_topo_group B, cm_dev10 C
+                WHERE   A.dev_kind1 IN ('DEV', 'APC')
+                AND     A.grp_no = B.grp_no
+                AND     A.mng_no = C.mng_no
+                AND     A.user_id = B.user_id
+                AND     A.user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT  A.grp_no, A.item_no, B.grp_name, C.sub_name AS dev_name,
+                        A.dev_kind2, C.ip AS dev_ip, A.evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_topo_group B, nt_cfg_subnet C
+                WHERE   A.dev_kind1 = 'SUB'
+                AND     A.grp_no = B.grp_no
+                AND     A.mng_no = C.sub_no
+                AND     A.user_id = B.user_id
+                AND     A.user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT  A.grp_no, A.item_no, B.grp_name, COALESCE(NULLIF(C.user_dev_name, ''), C.dev_name) AS dev_name,
+                        A.dev_kind2, C.dev_ip, A.evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_topo_group B, cm_dev10 C
+                WHERE   A.dev_kind1 IN ('SVR', 'VSVR')
+                AND     A.grp_no = B.grp_no
+                AND     A.mng_no = C.mng_no
+                AND     A.user_id = B.user_id
+                AND     A.user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT  A.grp_no, A.item_no, B.grp_name, C.dev_name,
+                        A.dev_kind2, C.dev_ip, A.evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_topo_group B, cm_topo_etc C
+                WHERE   A.dev_kind1 = 'ETC'
+                AND     A.grp_no = B.grp_no
+                AND     A.item_no = C.item_no
+                AND     A.user_id = B.user_id
+                AND     A.user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT DISTINCT
+                        A.grp_no, A.item_no, B.grp_name, COALESCE(NULLIF(E.user_dev_name, ''), E.dev_name) AS dev_name,
+                        A.dev_kind2, C.rack_ip AS dev_ip, A.evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_topo_group B, s_cm_rack C, s_cm_rack_conf D, cm_dev10 E
+                WHERE   A.mng_no = E.mng_no
+                AND     A.mng_no = D.mng_no
+                AND     C.rack_no = D.rack_no
+                AND     A.grp_no = B.grp_no
+                AND     A.user_id = B.user_id
+                AND     A.dev_kind1 = 'RACK'
+                AND     A.user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT DISTINCT
+                        A.grp_no, A.item_no, C.grp_name, B.sensor_name AS dev_name,
+                        A.dev_kind2, '' AS dev_ip, A.evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_fms_sensor B, cm_topo_group C
+                WHERE   A.mng_no = B.mng_no
+                AND     A.dev_kind1 = 'SENSOR'
+                AND     A.temp1 = B.fms_seq_no
+                AND     A.grp_no = C.grp_no
+                AND     A.user_id = C.user_id
+                AND     A.user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT DISTINCT
+                        A.grp_no, A.item_no, E.grp_name, B.dev_name,
+                        A.dev_kind2, B.dev_ip, C.evt_level1 AS evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_dev10 B, cm_topo_link C, cm_dev20 D, cm_topo_group E
+                WHERE   A.dev_kind1 = 'DEV'
+                AND     A.mng_no = B.mng_no
+                AND     A.item_no = C.item_no1
+                AND     A.mng_no = C.mng_no1
+                AND     A.mng_no = D.mng_no
+                AND     C.if_idx1 = D.if_idx
+                AND     A.grp_no = E.grp_no
+                AND     A.user_id = E.user_id
+                AND     A.user_id = <include refid="selectMapUserId"/>
+                UNION ALL
+                SELECT DISTINCT
+                        A.grp_no, A.item_no, E.grp_name, B.dev_name,
+                        A.dev_kind2, B.dev_ip, C.evt_level1 AS evt_level, A.mng_no
+                FROM    cm_topo_item A, cm_dev10 B, cm_topo_link C, cm_dev20 D, cm_topo_group E
+                WHERE   A.dev_kind1 = 'DEV'
+                AND     A.mng_no = B.mng_no
+                AND     A.item_no = C.item_no2
+                AND     A.mng_no = C.mng_no2
+                AND     A.mng_no = D.mng_no
+                AND     C.if_idx2 = D.if_idx
+                AND     A.grp_no = E.grp_no
+                AND     A.user_id = E.user_id
+                AND     A.user_id = <include refid="selectMapUserId"/>
+            ) A
+            WHERE 1=1
+            <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+                AND A.grp_name LIKE '%' || #{sGrpName} || '%'
+            </if>
+            <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+                AND A.dev_ip LIKE '%' || #{sIp} || '%'
+            </if>
+            <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+                AND UPPER(A.dev_name) LIKE '%' || UPPER(#{sDevName}) || '%'
+            </if>
+            ORDER BY A.grp_name, A.dev_name, A.dev_kind2, A.dev_ip
+        ) AA
+        WHERE AA.grp_no IN
+            (SELECT topo_grp_no
+             FROM   cm_topo_auth_group_subgrp
+             WHERE  auth_grp_no =
+                (SELECT topo_auth_grp_no
+                 FROM   com_user
+                 WHERE  user_id = #{userId}))
+    </select>
+
+</mapper>

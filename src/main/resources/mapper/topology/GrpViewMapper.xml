@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.GrpViewMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <sql id="selectAuthGrpNos">
+        (SELECT DISTINCT sub_no
+         FROM   nt_cfg_leaf
+         WHERE  grp_no IN (
+             SELECT nt_grp_no
+             FROM   com_auth_group_subgrp
+             WHERE  auth_grp_no = #{authGrpNo}))
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapGrpViewDto" id="resultGrpView">
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="evtLevel" column="evt_level"/>
+        <result property="grpParent" column="grp_parent"/>
+        <collection property="children" column="{grpParent=grp_no,userId=user_id,authGrpNo=auth_grp_no}"
+                    select="com.example.netisbackend.mapper.topology.GrpViewMapper.selectGrpViewAuthList"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapGrpViewDto" id="resultRegGrpView">
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="evtLevel" column="evt_level"/>
+        <result property="grpParent" column="grp_parent"/>
+        <collection property="children" column="{grpParent=grp_no,userId=user_id,authGrpNo=auth_grp_no}"
+                    select="com.example.netisbackend.mapper.topology.GrpViewMapper.selectRegGrpViewAuthList"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapGrpViewDto" id="resultGrpViewAuth">
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="evtLevel" column="evt_level"/>
+        <result property="grpParent" column="grp_parent"/>
+        <collection property="children" column="{grpParent=grp_no,userId=user_id,authGrpNo=auth_grp_no}"
+                    select="com.example.netisbackend.mapper.topology.GrpViewMapper.selectGrpViewChildList"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapGrpViewDto" id="resultRegGrpViewAuth">
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="evtLevel" column="evt_level"/>
+        <result property="grpParent" column="grp_parent"/>
+        <collection property="children" column="{grpParent=grp_no,userId=user_id,authGrpNo=auth_grp_no}"
+                    select="com.example.netisbackend.mapper.topology.GrpViewMapper.selectRegGrpViewChildList"/>
+    </resultMap>
+
+    <!-- 그룹 조회 -->
+    <select id="selectGrpViewList" resultMap="resultGrpView">
+        SELECT DISTINCT
+               A.grp_no,
+               A.grp_name,
+               B.evt_level,
+               A.grp_parent,
+               #{userId} AS user_id,
+               #{authGrpNo} AS auth_grp_no
+        FROM   cm_topo_group A, cm_topo_item B
+        WHERE  A.grp_no = #{topGrpNo}
+        AND    A.grp_no = B.mng_no
+        AND    B.dev_kind1 = 'GRP'
+        AND    A.user_id = B.user_id
+        AND    A.user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- 등록 그룹 조회 -->
+    <select id="selectRegGrpViewList" resultMap="resultRegGrpView">
+        SELECT DISTINCT
+               A.grp_no,
+               A.grp_name,
+               '' AS evt_level,
+               A.grp_parent,
+               #{userId} AS user_id,
+               #{authGrpNo} AS auth_grp_no
+        FROM   nt_cfg_group A
+        WHERE  A.grp_no = #{topGrpNo}
+    </select>
+
+    <!-- 권한 그룹 하위 조회 -->
+    <select id="selectGrpViewAuthList" resultMap="resultGrpViewAuth">
+        SELECT DISTINCT
+               A.grp_no,
+               A.grp_name,
+               B.evt_level,
+               A.grp_parent,
+               #{userId} AS user_id,
+               #{authGrpNo} AS auth_grp_no
+        FROM   cm_topo_group A, cm_topo_item B
+        WHERE  grp_parent = #{grpParent}
+        AND    A.user_id = B.user_id
+        AND    A.grp_no = B.mng_no
+        AND    B.dev_kind1 = 'GRP'
+        AND    A.user_id = <include refid="selectMapUserId"/>
+        AND    B.uniq_id IN <include refid="selectAuthGrpNos"/>
+        ORDER BY grp_name
+    </select>
+
+    <!-- 등록 권한 그룹 하위 조회 -->
+    <select id="selectRegGrpViewAuthList" resultMap="resultRegGrpViewAuth">
+        SELECT DISTINCT
+               A.grp_no,
+               A.grp_name,
+               '' AS evt_level,
+               A.grp_parent,
+               #{userId} AS user_id,
+               #{authGrpNo} AS auth_grp_no
+        FROM   nt_cfg_group A
+        WHERE  grp_parent = #{grpParent}
+        ORDER BY grp_name
+    </select>
+
+    <!-- 그룹 하위 자식 조회 -->
+    <select id="selectGrpViewChildList" resultMap="resultGrpView">
+        SELECT DISTINCT
+               A.grp_no,
+               A.grp_name,
+               B.evt_level,
+               A.grp_parent,
+               #{userId} AS user_id,
+               #{authGrpNo} AS auth_grp_no
+        FROM   cm_topo_group A, cm_topo_item B
+        WHERE  grp_parent = #{grpParent}
+        AND    A.user_id = B.user_id
+        AND    A.grp_no = B.mng_no
+        AND    B.dev_kind1 = 'GRP'
+        AND    A.user_id = <include refid="selectMapUserId"/>
+        ORDER BY grp_name
+    </select>
+
+    <!-- 등록 그룹 하위 자식 조회 -->
+    <select id="selectRegGrpViewChildList" resultMap="resultRegGrpView">
+        SELECT DISTINCT
+               A.grp_no,
+               A.grp_name,
+               '' AS evt_level,
+               A.grp_parent,
+               #{userId} AS user_id,
+               #{authGrpNo} AS auth_grp_no
+        FROM   nt_cfg_group A
+        WHERE  grp_parent = #{grpParent}
+        ORDER BY grp_name
+    </select>
+
+</mapper>

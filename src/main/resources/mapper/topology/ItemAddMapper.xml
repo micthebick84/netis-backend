@@ -1,0 +1,1150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.ItemAddMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <sql id="selectAuthGrpNos">
+        (SELECT DISTINCT sub_no
+         FROM nt_cfg_leaf
+         WHERE grp_no IN (
+             SELECT nt_grp_no
+             FROM com_auth_group_subgrp
+             WHERE auth_grp_no = #{authGrpNo})
+         UNION ALL
+         SELECT DISTINCT sub_no
+         FROM nt_cfg_grp_leaf
+         WHERE grp_no IN (
+             SELECT nt_grp_no
+             FROM com_auth_group_subgrp
+             WHERE auth_grp_no = #{authGrpNo}))
+    </sql>
+
+    <!-- ==================== Result Maps ==================== -->
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegDevDto" id="resultRegDev">
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="devKind1" column="dev_kind1"/>
+        <result property="devKind2" column="dev_kind2"/>
+        <result property="devKind2Str" column="dev_kind2_str"/>
+        <result property="community" column="community"/>
+        <result property="model" column="model"/>
+        <result property="vendor" column="vendor"/>
+        <result property="vendorStr" column="vendor_str"/>
+        <result property="isExist" column="is_exist"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegSvrDto" id="resultRegSvr">
+        <result property="mngNo" column="mng_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="svrNo" column="mng_no"/>
+        <result property="name" column="dev_name"/>
+        <result property="ipNo" column="ip_no"/>
+        <result property="displayName" column="display_name"/>
+        <result property="port" column="port"/>
+        <result property="frPort" column="fr_port"/>
+        <result property="devKind1" column="dev_kind1"/>
+        <result property="devKind2" column="dev_kind2"/>
+        <result property="devKind2Str" column="dev_kind2_str"/>
+        <result property="isExist" column="is_exist"/>
+        <result property="vendor" column="vendor"/>
+        <result property="vendorStr" column="vendor_str"/>
+        <result property="model" column="model"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegSubDto" id="resultRegSub">
+        <result property="grpName" column="grp_name"/>
+        <result property="subNo" column="sub_no"/>
+        <result property="subName" column="sub_name"/>
+        <result property="ip" column="ip"/>
+        <result property="subMaskNo" column="sub_mask_no"/>
+        <result property="isExist" column="is_exist"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegRackDto" id="resultRegRack">
+        <result property="grpNo" column="grp_no"/>
+        <result property="grpName" column="grp_name"/>
+        <result property="rackNo" column="rack_no"/>
+        <result property="rackName" column="rack_name"/>
+        <result property="rackU" column="rack_u"/>
+        <result property="rackType" column="rack_type"/>
+        <result property="vendor" column="vendor"/>
+        <result property="model" column="model"/>
+        <result property="ymd" column="ymd"/>
+        <result property="width" column="width"/>
+        <result property="height" column="height"/>
+        <result property="isexist" column="isexist"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegApDto" id="resultRegAp">
+        <result property="grpName" column="grp_name"/>
+        <result property="parentMngNo" column="parent_mng_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="apName" column="ap_name"/>
+        <result property="apMac" column="ap_mac"/>
+        <result property="apIp" column="ap_ip"/>
+        <result property="isExist" column="isexist"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegSensorDto" id="resultRegSensor">
+        <result property="grpName" column="grp_name"/>
+        <result property="parentName" column="parent_name"/>
+        <result property="parentIp" column="parent_ip"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="fmsSeqNo" column="fms_seq_no"/>
+        <result property="portNo" column="port_no"/>
+        <result property="vendor" column="vendor"/>
+        <result property="sensorModel" column="sensor_model"/>
+        <result property="sensorName" column="sensor_name"/>
+        <result property="sensorKind" column="sensor_kind"/>
+        <result property="sensorIndex" column="sensor_index"/>
+        <result property="setupLoc" column="setup_loc"/>
+        <result property="status" column="status"/>
+        <result property="isExist" column="isexist"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegWasDto" id="resultRegWas">
+        <result property="grpName" column="grp_name"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="wasNo" column="was_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="wasNm" column="was_nm"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="connPort" column="conn_port"/>
+        <result property="wasKind" column="was_kind"/>
+        <result property="isExist" column="is_exist"/>
+        <result property="displayName" column="display_name"/>
+        <result property="vendor" column="vendor"/>
+        <result property="model" column="model"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapRegDbmsDto" id="resultRegDbms">
+        <result property="grpName" column="grp_name"/>
+        <result property="mngNo" column="mng_no"/>
+        <result property="dbmsNo" column="dbms_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="dbmsNm" column="dbms_nm"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="dbmsPort" column="dbms_port"/>
+        <result property="dbmsKind" column="dbms_kind"/>
+        <result property="isExist" column="is_exist"/>
+        <result property="displayName" column="display_name"/>
+        <result property="vendor" column="vendor"/>
+        <result property="model" column="model"/>
+    </resultMap>
+
+    <!-- ==================== 그룹번호 채번 ==================== -->
+    <select id="selectNewGrpNo" resultType="long">
+        SELECT COALESCE(MAX(grp_no), 1) + 1
+        FROM   cm_topo_group
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <select id="selectGrpUniqIdDup" resultType="int">
+        SELECT COUNT(uniq_id)
+        FROM   cm_topo_item
+        WHERE  user_id = <include refid="selectMapUserId"/>
+        AND    uniq_id IS NOT NULL
+        AND    uniq_id = #{uniqId}
+    </select>
+
+    <!-- ==================== 그룹 ==================== -->
+
+    <insert id="insertGrpItem">
+        INSERT INTO cm_topo_group (
+            user_id,
+            grp_no,
+            grp_name,
+            grp_parent,
+            view_type
+            <if test="_parameter.containsKey('lat')">
+                , gis_lat
+            </if>
+            <if test="_parameter.containsKey('lat')">
+                , gis_lnt
+            </if>
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>,
+            #{grpNo},
+            #{grpName},
+            #{grpParent},
+            #{viewType}
+            <if test="_parameter.containsKey('lat')">
+                , #{lat}
+            </if>
+            <if test="_parameter.containsKey('lat')">
+                , #{lnt}
+            </if>
+        );
+
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, dev_kind1, dev_kind2, usr_kind, mng_no, uniq_id
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>,
+            #{grpParent},
+            (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+            'GRP',
+            'GROUP',
+            'GROUP_A1',
+            #{grpNo},
+            #{uniqId}
+        )
+    </insert>
+
+    <select id="selectMapId" resultType="String">
+        SELECT CASE WHEN isshare = 1 THEN parent_id ELSE user_id END
+        FROM   com_user
+        WHERE  user_id = #{userId}
+    </select>
+
+    <!-- CM_TOPO_LEAF 생성 프로시저 호출 -->
+    <select id="procSpMakeTopoLeaf" resultType="int">
+        SELECT sp_make_topo_leaf(#{userId})
+    </select>
+
+    <!-- ==================== 장비 ==================== -->
+    <select id="selectRegDevList" resultMap="resultRegDev">
+        SELECT *
+        FROM (
+                SELECT DISTINCT
+                    A.grp_no,
+                    grp_name,
+                    A.mng_no,
+                    CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END AS dev_name,
+                    A.dev_ip,
+                    A.dev_kind1,
+                    A.dev_kind2,
+                    (SELECT COALESCE(code_nm, '-') FROM tb_com_code
+                        WHERE p_code_id IN (SELECT code_id FROM tb_com_code WHERE code_cd = A.dev_kind1)
+                        AND code_cd = A.dev_kind2) AS dev_kind2_str,
+                    A.community,
+                    A.model,
+                    A.vendor,
+                    (SELECT code_value1 FROM cm_code10 WHERE code_kind = 'VENDOR' AND code_id = A.vendor) AS vendor_str,
+                    CASE WHEN B.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS is_exist
+                FROM cm_dev10 A
+                    LEFT JOIN (
+                        SELECT *
+                        FROM   cm_topo_item
+                        WHERE  dev_kind1 IN ('DEV','LMS')
+                        AND    dev_kind2 NOT IN ('CCTV', 'ETC')
+                        AND    user_id = <include refid="selectMapUserId"/>
+                    ) B ON A.mng_no = B.mng_no
+                    INNER JOIN nt_cfg_group C ON A.grp_no = C.grp_no
+                WHERE A.dev_kind1 IN ('DEV', 'LMS', 'RADIO')
+                AND   A.grp_no IN <include refid="selectAuthGrpNos"/>
+                AND   A.mng_no NOT IN (
+                    SELECT mng_no
+                    FROM   cm_topo_item
+                    WHERE  user_id = <include refid="selectMapUserId"/>
+                    AND    dev_kind1 IN ('DEV','LMS')
+                    AND    grp_no = #{grpNo}
+                )
+        ) TB
+        WHERE 1 = 1
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND TB.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+            AND TB.dev_ip LIKE '%' || #{sIp} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(TB.dev_name) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevKind2') and sDevKind2 != null and sDevKind2 != ''">
+            AND TB.dev_kind2_str LIKE '%' || #{sDevKind2} || '%'
+        </if>
+        <if test="_parameter.containsKey('sVendor') and sVendor != null and sVendor != ''">
+            AND TB.vendor_str LIKE '%' || #{sVendor} || '%'
+        </if>
+        ORDER BY TB.grp_name, TB.dev_name, TB.dev_ip
+    </select>
+
+    <update id="insertDevItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id,
+                item_no,
+                grp_no,
+                mng_no,
+                dev_kind1,
+                dev_kind2,
+                usr_kind
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.mngNo},
+                <choose>
+                    <when test="item.devKind1 != null">
+                        #{item.devKind1},
+                    </when>
+                    <otherwise>
+                        'DEV',
+                    </otherwise>
+                </choose>
+                #{item.devKind2},
+                COALESCE(
+                    (SELECT img_file_nm
+                     FROM   cm_topo_item_img
+                     WHERE  dev_kind1 = 'DEV' AND dev_kind2 = #{item.devKind2} AND model = #{item.model}),
+                    #{item.devKind2})
+            )
+        </foreach>
+    </update>
+
+    <update id="insertCopyDevItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, grp_no, item_no,
+                item_type, item_sub_type, mng_no,
+                xpoint, ypoint, item_size, sh_evt,
+                item_sub_kind, item_file_name, item_alias, user_content,
+                font_size, evt_level, dev_kind1, dev_kind2, usr_kind,
+                gc_no, uniq_id, evt_type,
+                temp1, temp2, temp3, back_mng_no, show_label
+            )
+            SELECT
+                user_id,
+                #{grpNo},
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                item_type, item_sub_type, mng_no,
+                xpoint, ypoint, item_size, sh_evt,
+                item_sub_kind, item_file_name, item_alias, user_content,
+                font_size, evt_level, dev_kind1, dev_kind2, usr_kind,
+                gc_no, uniq_id, evt_type,
+                temp1, temp2, temp3, back_mng_no, show_label
+            FROM cm_topo_item
+            WHERE item_no = #{item.itemNo}
+            AND   user_id = <include refid="selectMapUserId"/>
+        </foreach>
+    </update>
+
+    <!-- ==================== 그룹 복사 ==================== -->
+    <update id="insertCopyGrpItem">
+        <selectKey keyProperty="addGrpNo" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(grp_no), 0) + 1 FROM cm_topo_group WHERE user_id = <include refid="selectMapUserId"/>
+        </selectKey>
+
+        <!-- cm_topo_group 에 복사 신규 Group 생성 -->
+        INSERT INTO cm_topo_group (
+            user_id, grp_no, grp_name, grp_parent, bg_file_nm, view_type
+            <if test="_parameter.containsKey('lat')">
+                , gis_lat
+            </if>
+            <if test="_parameter.containsKey('lat')">
+                , gis_lnt
+            </if>
+        )
+        SELECT
+            <include refid="selectMapUserId"/>,
+            #{addGrpNo},
+            grp_name || '-' || #{addGrpNo},
+            #{grpParent},
+            bg_file_nm,
+            view_type
+            <if test="_parameter.containsKey('lat')">
+                , #{lat}
+            </if>
+            <if test="_parameter.containsKey('lat')">
+                , #{lnt}
+            </if>
+        FROM cm_topo_group
+        WHERE grp_no = #{grpNo}
+        AND   user_id = <include refid="selectMapUserId"/>;
+
+        <!-- cm_topo_item 에 Group Item 정보 생성 -->
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, mng_no,
+            xpoint, ypoint, item_size, sh_evt, item_alias, font_size, evt_level,
+            dev_kind1, dev_kind2, usr_kind, back_mng_no, show_label
+        )
+        SELECT
+            user_id,
+            #{grpParent},
+            (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+            #{addGrpNo},
+            CASE WHEN #{grpParent} = #{orgGrpNo} THEN
+                CASE WHEN xpoint >= CAST(#{width} AS numeric) THEN xpoint - 20
+                     ELSE xpoint + 20
+                END
+            ELSE xpoint
+            END,
+            CASE WHEN #{grpParent} = #{orgGrpNo} THEN
+                CASE WHEN ypoint >= CAST(#{height} AS numeric) THEN ypoint - 20
+                     ELSE ypoint + 20
+                END
+            ELSE ypoint
+            END,
+            item_size, sh_evt, item_alias, font_size, evt_level,
+            dev_kind1, dev_kind2, usr_kind, back_mng_no, show_label
+        FROM cm_topo_item
+        WHERE item_no = #{itemNo}
+        AND   user_id = <include refid="selectMapUserId"/>;
+
+        <foreach collection="drawItems" item="item">
+            INSERT INTO cm_topo_draw_tool (
+                user_id, grp_no, dev_kind1, dev_kind2, pos_x, pos_y,
+                width, height, fill_color, fill_opacity, stroke_color, stroke_opacity, stroke_width,
+                corner_radius, font_size, font_weight, text_anchor, text_content, rx, ry, sort_idx,
+                text_area_content, font_distance, rotation
+            )
+            SELECT
+                user_id, #{addGrpNo}, dev_kind1, dev_kind2, pos_x, pos_y,
+                width, height, fill_color, fill_opacity, stroke_color, stroke_opacity, stroke_width,
+                corner_radius, font_size, font_weight, text_anchor, text_content, rx, ry,
+                (SELECT COALESCE(MAX(sort_idx), 0) + 1 FROM cm_topo_draw_tool WHERE grp_no = #{addGrpNo} AND user_id = <include refid="selectMapUserId"/>),
+                text_area_content, font_distance, rotation
+            FROM cm_topo_draw_tool A
+            WHERE draw_no = #{item.drawNo}
+            AND   user_id = <include refid="selectMapUserId"/>;
+        </foreach>
+    </update>
+
+    <!-- ==================== 그룹 복제 ==================== -->
+    <update id="insertCloneGrpItem">
+        <selectKey keyProperty="addGrpNo" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(grp_no), 0) + 1 FROM cm_topo_group WHERE user_id = <include refid="selectMapUserId"/>
+        </selectKey>
+
+        <!-- cm_topo_group 에 복제 신규 Group 생성 -->
+        INSERT INTO cm_topo_group (
+            user_id, grp_no, grp_name, grp_parent, bg_file_nm, view_type
+            <if test="_parameter.containsKey('lat')">
+                , gis_lat
+            </if>
+            <if test="_parameter.containsKey('lat')">
+                , gis_lnt
+            </if>
+        )
+        SELECT
+            <include refid="selectMapUserId"/>,
+            #{addGrpNo},
+            grp_name || '-' || #{addGrpNo},
+            #{grpParent},
+            bg_file_nm,
+            view_type
+            <if test="_parameter.containsKey('lat')">
+                , #{lat}
+            </if>
+            <if test="_parameter.containsKey('lat')">
+                , #{lnt}
+            </if>
+        FROM cm_topo_group
+        WHERE grp_no = #{grpNo}
+        AND   user_id = <include refid="selectMapUserId"/>;
+
+        <!-- cm_topo_item 에 Group Item 정보 생성 -->
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, mng_no,
+            xpoint, ypoint, item_size, sh_evt, item_alias, font_size, evt_level,
+            dev_kind1, dev_kind2, usr_kind, back_mng_no, show_label
+        )
+        SELECT
+            user_id,
+            #{grpParent},
+            (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+            #{addGrpNo},
+            CASE WHEN #{grpParent} = #{orgGrpNo} THEN
+                CASE WHEN xpoint >= CAST(#{width} AS numeric) THEN xpoint - 20
+                     ELSE xpoint + 20
+                END
+            ELSE xpoint
+            END,
+            CASE WHEN #{grpParent} = #{orgGrpNo} THEN
+                CASE WHEN ypoint >= CAST(#{height} AS numeric) THEN ypoint - 20
+                     ELSE ypoint + 20
+                END
+            ELSE ypoint
+            END,
+            item_size, sh_evt, item_alias, font_size, evt_level,
+            dev_kind1, dev_kind2, usr_kind, back_mng_no, show_label
+        FROM cm_topo_item
+        WHERE item_no = #{itemNo}
+        AND   user_id = <include refid="selectMapUserId"/>;
+
+        <!-- cm_topo_item 에 신규 생성 그룹에 속한 장비(그룹을 제외한 모든) Item 정보 생성 -->
+        <foreach collection="grpCloneItems" item="item">
+            INSERT INTO cm_topo_item (
+                user_id, grp_no, item_no, mng_no,
+                item_type, item_sub_type, xpoint, ypoint, item_size, sh_evt,
+                item_sub_kind, item_file_name, item_alias, user_content, font_size, evt_level,
+                dev_kind1, dev_kind2, usr_kind, gc_no, uniq_id, evt_type,
+                temp1, temp2, temp3, back_mng_no, show_label, dev_perf, item_conf
+            )
+            SELECT
+                user_id, #{addGrpNo},
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                mng_no,
+                item_type, item_sub_type, xpoint, ypoint, item_size, sh_evt,
+                item_sub_kind, item_file_name, item_alias, user_content, font_size, evt_level,
+                dev_kind1, dev_kind2, usr_kind, gc_no, uniq_id, evt_type,
+                temp1, temp2, temp3, back_mng_no, show_label, dev_perf, item_conf
+            FROM cm_topo_item
+            WHERE item_no = #{item.itemNo}
+            AND   user_id = <include refid="selectMapUserId"/>;
+
+            <if test="item.devKind1 != null and item.devKind1 == 'ETC'">
+                INSERT INTO cm_topo_etc (user_id, item_no, dev_name, dev_ip, icmp_polling, url)
+                SELECT user_id,
+                    (SELECT MAX(item_no) FROM cm_topo_item WHERE user_id = <include refid="selectMapUserId"/>),
+                    dev_name, dev_ip, icmp_polling, url
+                FROM cm_topo_etc
+                WHERE user_id = <include refid="selectMapUserId"/>
+                AND   item_no = #{item.itemNo};
+            </if>
+        </foreach>
+
+        <!-- cm_topo_link 에 신규 생성 그룹에 속한 장비의 Link 정보 생성 -->
+        <foreach collection="grpCloneLinks" item="link">
+            INSERT INTO cm_topo_link (
+                user_id, grp_no, mng_no1, if_idx1, url, line_size, line_type, sh_evt,
+                item_no1, item_no2,
+                evt_level1, point1, point2, line_width1, link_idx1,
+                link_no,
+                mng_no2, if_idx2, evt_level2,
+                line_width2, link_name1, link_name2, is_main, gc_no, traffic1, traffic2, is_multi, link_idx2,
+                traffic_type1, traffic_type2, line_point_ud1, line_point_lr1, line_point_ud2, line_point_lr2,
+                point3, user_poll_line_color1, user_poll_line_color2, curve_x1, curve_y1, curve_x2, curve_y2,
+                line_style, line_color, polling_color, traffic1_in, traffic1_out, traffic2_in, traffic2_out,
+                line_traffic_effect, line_traffic_effect_speed, line_flow_effect, line_flow_effect_speed,
+                line_flow_effect_count, line_flow_effect_color, line_label_conf
+            )
+            SELECT
+                user_id, #{addGrpNo}, mng_no1, if_idx1, url, line_size, line_type, sh_evt,
+                (SELECT item_no FROM cm_topo_item
+                 WHERE user_id = <include refid="selectMapUserId"/>
+                 AND grp_no = #{addGrpNo}
+                 AND mng_no = #{link.mngNo1}),
+                (SELECT item_no FROM cm_topo_item
+                 WHERE user_id = <include refid="selectMapUserId"/>
+                 AND grp_no = #{addGrpNo}
+                 AND mng_no = #{link.mngNo2}),
+                evt_level1, point1, point2, line_width1, link_idx1,
+                (SELECT COALESCE(MAX(link_no), 0) + 1 FROM cm_topo_link WHERE user_id = <include refid="selectMapUserId"/>),
+                mng_no2, if_idx2, evt_level2,
+                line_width2, link_name1, link_name2, is_main, gc_no, traffic1, traffic2, is_multi, link_idx2,
+                traffic_type1, traffic_type2, line_point_ud1, line_point_lr1, line_point_ud2, line_point_lr2,
+                point3, user_poll_line_color1, user_poll_line_color2, curve_x1, curve_y1, curve_x2, curve_y2,
+                line_style, line_color, polling_color, traffic1_in, traffic1_out, traffic2_in, traffic2_out,
+                line_traffic_effect, line_traffic_effect_speed, line_flow_effect, line_flow_effect_speed,
+                line_flow_effect_count, line_flow_effect_color, line_label_conf
+            FROM cm_topo_link
+            WHERE grp_no = #{grpNo}
+            AND   link_no = #{link.linkNo}
+            AND   user_id = <include refid="selectMapUserId"/>;
+        </foreach>
+
+        <!-- cm_topo_draw 에 신규 생성 그룹에 속한 drawTool 정보 생성 -->
+        <foreach collection="drawItems" item="item">
+            INSERT INTO cm_topo_draw_tool (
+                user_id, grp_no, dev_kind1, dev_kind2, pos_x, pos_y,
+                width, height, fill_color, fill_opacity, stroke_color, stroke_opacity, stroke_width,
+                corner_radius, font_size, font_weight, text_anchor, text_content, rx, ry, sort_idx,
+                text_area_content, font_distance, rotation
+            )
+            SELECT
+                user_id, #{addGrpNo}, dev_kind1, dev_kind2, pos_x, pos_y,
+                width, height, fill_color, fill_opacity, stroke_color, stroke_opacity, stroke_width,
+                corner_radius, font_size, font_weight, text_anchor, text_content, rx, ry,
+                (SELECT COALESCE(MAX(sort_idx), 0) + 1 FROM cm_topo_draw_tool WHERE grp_no = #{addGrpNo} AND user_id = <include refid="selectMapUserId"/>),
+                text_area_content, font_distance, rotation
+            FROM cm_topo_draw_tool A
+            WHERE draw_no = #{item.drawNo}
+            AND   user_id = <include refid="selectMapUserId"/>;
+        </foreach>
+
+        <!-- cm_topo_spline 에 신규 생성 그룹에 속한 spline 정보 생성 -->
+        <foreach collection="splineList" item="line">
+            INSERT INTO cm_topo_spline (
+                spline_no, user_id, grp_no, spline_type, spline_string,
+                spline_conf, spline_size, spline_style, spline_color
+            )
+            SELECT
+                (SELECT COALESCE(MAX(spline_no), 0) + 1 FROM cm_topo_spline),
+                user_id, #{addGrpNo}, spline_type, spline_string,
+                spline_conf, spline_size, spline_style, spline_color
+            FROM cm_topo_spline A
+            WHERE spline_no = #{line.splineNo}
+            AND   grp_no = #{grpNo}
+            AND   user_id = <include refid="selectMapUserId"/>;
+        </foreach>
+    </update>
+
+    <select id="selectCloneTargetItemList" resultType="map">
+        SELECT item_no AS "itemNo", mng_no AS "mngNo", dev_kind1 AS "devKind1", dev_kind2 AS "devKind2"
+        FROM   cm_topo_item
+        WHERE  user_id = <include refid="selectMapUserId"/>
+        AND    grp_no = #{grpNo}
+        AND    dev_kind1 != 'GRP'
+    </select>
+
+    <select id="selectCloneTargetLinkList" resultType="map">
+        SELECT grp_no AS "grpNo", link_no AS "linkNo", mng_no1 AS "mngNo1", mng_no2 AS "mngNo2"
+        FROM   cm_topo_link
+        WHERE  user_id = <include refid="selectMapUserId"/>
+        AND    grp_no = #{grpNo}
+    </select>
+
+    <!-- ==================== 서버, VSVR(VM) ==================== -->
+    <select id="selectRegSvrList" resultMap="resultRegSvr">
+        SELECT *
+        FROM (
+                SELECT A.mng_no,
+                    CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END AS dev_name,
+                    A.dev_ip,
+                    '' AS ip_no,
+                    '' AS port,
+                    '' AS fr_port,
+                    grp_name,
+                    A.dev_kind1,
+                    A.dev_kind2,
+                    (SELECT COALESCE(code_nm, '-') FROM tb_com_code
+                        WHERE p_code_id IN (SELECT code_id FROM tb_com_code WHERE code_cd = A.dev_kind1)
+                        AND code_cd = A.dev_kind2) AS dev_kind2_str,
+                    CASE WHEN B.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS is_exist,
+                    CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END AS display_name,
+                    COALESCE(A.vendor, '-') AS vendor,
+                    (SELECT code_value1 FROM cm_code10 WHERE code_kind = 'VENDOR' AND code_id = A.vendor) AS vendor_str,
+                    COALESCE(A.model, '-') AS model
+                FROM cm_dev10 A
+                    LEFT JOIN (
+                        SELECT *
+                        FROM   cm_topo_item
+                        WHERE  dev_kind1 IN ('SVR', 'VSVR')
+                        AND    user_id = <include refid="selectMapUserId"/>
+                    ) B ON A.mng_no = B.mng_no
+                    INNER JOIN nt_cfg_group C ON A.grp_no = C.grp_no
+                WHERE A.dev_kind1 IN ('SVR', 'VSVR')
+                AND   A.mng_no NOT IN (
+                    SELECT mng_no
+                    FROM   cm_topo_item
+                    WHERE  user_id = <include refid="selectMapUserId"/>
+                    AND    dev_kind1 IN ('SVR', 'VSVR')
+                    AND    grp_no = #{grpNo}
+                )
+        ) TB
+        WHERE 1 = 1
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND TB.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+            AND TB.dev_ip LIKE '%' || #{sIp} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(TB.dev_name) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevKind2') and sDevKind2 != null and sDevKind2 != ''">
+            AND TB.dev_kind2_str LIKE '%' || #{sDevKind2} || '%'
+        </if>
+        <if test="_parameter.containsKey('sVendor') and sVendor != null and sVendor != ''">
+            AND TB.vendor_str LIKE '%' || #{sVendor} || '%'
+        </if>
+        ORDER BY TB.grp_name, TB.dev_name, TB.dev_ip
+    </select>
+
+    <update id="insertSvrItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                dev_kind1, dev_kind2, usr_kind
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.mngNo},
+                #{item.devKind1},
+                #{item.devKind2},
+                COALESCE(#{item.devKind2}, 'SERVER')
+            )
+        </foreach>
+    </update>
+
+    <!-- ==================== 서브넷 ==================== -->
+    <select id="selectRegSubList" resultMap="resultRegSub">
+        SELECT A.sub_no,
+               A.sub_name,
+               A.ip,
+               A.sub_mask_no,
+               C.grp_name,
+               CASE WHEN B.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS is_exist
+        FROM   nt_cfg_subnet A
+               LEFT JOIN (
+                   SELECT *
+                   FROM   cm_topo_item
+                   WHERE  dev_kind1 = 'SUB'
+                   AND    user_id = <include refid="selectMapUserId"/>
+               ) B ON A.sub_no = B.mng_no
+               INNER JOIN nt_cfg_group C ON A.grp_no = C.grp_no
+        WHERE  grp_type = 1
+        AND    A.grp_no IN <include refid="selectAuthGrpNos"/>
+        AND    A.sub_no NOT IN (
+            SELECT mng_no
+            FROM   cm_topo_item
+            WHERE  user_id = <include refid="selectMapUserId"/>
+            AND    dev_kind1 = 'SUB'
+            AND    grp_no = #{grpNo}
+        )
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND C.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+            AND A.ip LIKE '%' || #{sIp} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(A.sub_name) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        ORDER BY grp_name, sub_name, ip
+    </select>
+
+    <update id="insertSubItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                dev_kind1, dev_kind2, usr_kind
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.subNo},
+                'SUB',
+                'SUBNET',
+                'SUBNET_A1'
+            )
+        </foreach>
+    </update>
+
+    <!-- ==================== 임의장비 ==================== -->
+    <update id="insertEtcItem">
+        INSERT INTO cm_topo_item (
+            user_id, item_no, grp_no, mng_no,
+            dev_kind1, dev_kind2, usr_kind, evt_level
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>,
+            (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+            #{grpNo},
+            0,
+            'ETC',
+            #{etcKind},
+            #{etcKind} || '_A1',
+            0
+        );
+
+        INSERT INTO cm_topo_etc (
+            user_id, item_no, dev_name, dev_ip, icmp_polling, url
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>,
+            (SELECT MAX(item_no) FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+            #{etcName},
+            #{devIp},
+            'N',
+            #{url}
+        )
+    </update>
+
+    <!-- ==================== RACK ==================== -->
+    <select id="selectRegRackList" resultMap="resultRegRack">
+        SELECT DISTINCT
+            A.grp_no,
+            grp_name,
+            rack_no,
+            rack_name,
+            rack_u,
+            rack_type,
+            vendor,
+            model,
+            TO_CHAR(CAST(yyyymmdd AS DATE), 'YYYY-MM-DD') AS ymd,
+            width,
+            height,
+            CASE WHEN B.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS isexist
+        FROM   s_cm_rack A
+               LEFT JOIN (
+                   SELECT *
+                   FROM   cm_topo_item
+                   WHERE  dev_kind1 = 'RACK'
+                   AND    user_id = <include refid="selectMapUserId"/>
+               ) B ON A.rack_no = B.mng_no
+               INNER JOIN nt_cfg_group C ON A.grp_no = C.grp_no
+        WHERE 1 = 1
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND C.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(A.rack_name) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        AND A.rack_no NOT IN (
+            SELECT mng_no
+            FROM   cm_topo_item
+            WHERE  user_id = <include refid="selectMapUserId"/>
+            AND    dev_kind1 = 'RACK'
+            AND    grp_no = #{grpNo}
+        )
+        ORDER BY rack_name
+    </select>
+
+    <update id="insertRackItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                dev_kind1, dev_kind2, usr_kind
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.rackNo},
+                'RACK',
+                'RACK',
+                'RACK_A1'
+            )
+        </foreach>
+    </update>
+
+    <!-- ==================== AP ==================== -->
+    <select id="selectRegApList" resultMap="resultRegAp">
+        SELECT DISTINCT
+            D.grp_name,
+            A.parent_mng_no,
+            CASE WHEN APC.user_dev_name IS NULL OR APC.user_dev_name = '' THEN APC.dev_name ELSE APC.user_dev_name END AS dev_name,
+            A.mng_no,
+            CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END AS ap_name,
+            B.ap_mac,
+            B.ap_ip,
+            CASE WHEN C.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS isexist
+        FROM cm_dev10 A
+            INNER JOIN (SELECT * FROM cm_dev10 WHERE dev_kind1 = 'DEV' AND dev_kind2 IN ('AP_CONTROLLER', 'AP_ALONE')) APC
+                ON A.parent_mng_no = APC.mng_no
+            INNER JOIN (SELECT * FROM cm_dev_ap WHERE mng_no IN (SELECT mng_no FROM cm_dev_ap_sub)) B
+                ON A.mng_no = B.mng_no
+            LEFT JOIN (
+                SELECT * FROM cm_topo_item
+                WHERE dev_kind1 = 'APC' AND dev_kind2 = 'AP'
+                AND   user_id = <include refid="selectMapUserId"/>
+            ) C ON A.mng_no = C.mng_no
+            INNER JOIN nt_cfg_group D ON A.grp_no = D.grp_no
+        WHERE A.dev_kind1 = 'APC'
+        AND   A.dev_kind2 = 'AP'
+        AND   A.grp_no IN <include refid="selectAuthGrpNos"/>
+        AND   A.mng_no NOT IN (
+            SELECT mng_no FROM cm_topo_item
+            WHERE  user_id = <include refid="selectMapUserId"/>
+            AND    dev_kind1 = 'APC' AND dev_kind2 = 'AP'
+            AND    grp_no = #{grpNo}
+        )
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND D.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(CASE WHEN APC.user_dev_name IS NULL OR APC.user_dev_name = '' THEN APC.dev_name ELSE APC.user_dev_name END) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        <if test="_parameter.containsKey('sApIp') and sApIp != null and sApIp != ''">
+            AND B.ap_ip LIKE '%' || #{sApIp} || '%'
+        </if>
+        <if test="_parameter.containsKey('sApMac') and sApMac != null and sApMac != ''">
+            AND B.ap_mac LIKE '%' || #{sApMac} || '%'
+        </if>
+        <if test="_parameter.containsKey('sApName') and sApName != null and sApName != ''">
+            AND UPPER(CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END) LIKE '%' || UPPER(#{sApName}) || '%'
+        </if>
+        ORDER BY grp_name, dev_name, ap_name
+    </select>
+
+    <update id="insertApItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                dev_kind1, dev_kind2, usr_kind
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.mngNo},
+                'APC',
+                'AP',
+                'AP_A1'
+            )
+        </foreach>
+    </update>
+
+    <!-- ==================== 센서 ==================== -->
+    <select id="selectRegSensorList" resultMap="resultRegSensor">
+        SELECT
+            CASE WHEN B.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS isexist,
+            C.grp_name,
+            COALESCE(NULLIF(RTU.user_dev_name, ''), RTU.dev_name) AS parent_name,
+            RTU.dev_ip AS parent_ip,
+            COALESCE(NULLIF(A.user_dev_name, ''), A.dev_name) AS dev_name,
+            A.mng_no, A.dev_ip, A.vendor, A.sensor_model,
+            A.mng_no AS fms_seq_no,
+            COALESCE(NULLIF(A.usr_name, ''), A.sensor_name) AS sensor_name,
+            A.sensor_kind, A.sensor_index,
+            COALESCE(E.code_value1, '정상') AS status
+        FROM (
+            SELECT
+                X.mng_no, X.grp_no, X.parent_mng_no,
+                X.user_dev_name, X.dev_name, X.dev_ip,
+                Y.sensor_name, Y.usr_name,
+                X.vendor, X.model AS sensor_model,
+                Y.sensor_index, Y.sensor_kind
+            FROM cm_dev10 X
+                INNER JOIN tb_fms_sensor Y ON X.mng_no = Y.mng_no
+            WHERE X.dev_kind1 = 'RTU'
+            AND   X.dev_kind2 = 'SENSOR'
+        ) A
+        LEFT OUTER JOIN cm_dev10 RTU ON RTU.mng_no = A.parent_mng_no
+        LEFT JOIN cm_topo_item B ON (A.mng_no = B.mng_no AND B.dev_kind1 = 'SENSOR')
+        LEFT JOIN cm_evt D ON (A.mng_no = D.src_mng_no AND D.status = 'C')
+        LEFT JOIN cm_code10 E ON (
+            D.evt_level = E.code_value3
+            AND E.code_kind = 'WEB_CONF'
+            AND E.code_id LIKE '%EVT_LEVEL%'
+        )
+        INNER JOIN nt_cfg_group C ON A.grp_no = C.grp_no
+        WHERE C.grp_no IN <include refid="selectAuthGrpNos"/>
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND C.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(COALESCE(NULLIF(A.user_dev_name, ''), A.dev_name)) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+            AND A.dev_ip LIKE '%' || #{sIp} || '%'
+        </if>
+        ORDER BY grp_name, A.sensor_index, dev_name
+    </select>
+
+    <update id="insertSensorItem">
+        <foreach collection="list" item="item" index="idx" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                dev_kind1, dev_kind2, usr_kind, temp1
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.mngNo},
+                'SENSOR',
+                #{item.sensorKind},
+                #{item.sensorKind},
+                #{item.fmsSeqNo}
+            )
+        </foreach>
+    </update>
+
+    <!-- ==================== WAS ==================== -->
+    <select id="selectRegWasList" resultMap="resultRegWas">
+        SELECT A.mng_no,
+               B.was_no,
+               A.dev_name,
+               B.was_nm,
+               A.dev_ip,
+               B.conn_port,
+               grp_name,
+               B.was_kind,
+               CASE WHEN B.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS is_exist,
+               CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END AS display_name,
+               A.vendor,
+               A.model
+        FROM cm_dev10 A
+            INNER JOIN nt_svr_was B ON A.mng_no = B.mng_no
+            LEFT JOIN (
+                SELECT * FROM cm_topo_item
+                WHERE dev_kind1 = 'WAS'
+                AND   user_id = <include refid="selectMapUserId"/>
+            ) C ON B.was_no = C.mng_no
+            INNER JOIN nt_cfg_group D ON A.grp_no = D.grp_no
+        WHERE A.dev_kind1 = 'SVR'
+        AND   A.grp_no IN <include refid="selectAuthGrpNos"/>
+        AND   B.was_no NOT IN (
+            SELECT mng_no
+            FROM   cm_topo_item
+            WHERE  user_id = <include refid="selectMapUserId"/>
+            AND    dev_kind1 = 'WAS'
+            AND    grp_no = #{grpNo}
+        )
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND D.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+            AND A.dev_ip LIKE '%' || #{sIp} || '%'
+        </if>
+        <if test="_parameter.containsKey('sWasName') and sWasName != null and sWasName != ''">
+            AND B.was_nm LIKE '%' || #{sWasName} || '%'
+        </if>
+    </select>
+
+    <update id="insertWasItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                dev_kind1, dev_kind2, usr_kind
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.wasNo},
+                'WAS',
+                COALESCE(#{item.wasKind}, 'WAS'),
+                #{item.wasKind}
+            )
+        </foreach>
+    </update>
+
+    <!-- ==================== DBMS ==================== -->
+    <select id="selectRegDbmsList" resultMap="resultRegDbms">
+        SELECT A.mng_no,
+               B.dbms_no,
+               A.dev_name,
+               B.dbms_nm,
+               A.dev_ip,
+               B.dbms_port,
+               grp_name,
+               B.dbms_kind,
+               CASE WHEN B.mng_no IS NULL THEN 'No' ELSE 'Yes' END AS is_exist,
+               CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END AS display_name,
+               A.vendor,
+               A.model
+        FROM cm_dev10 A
+            INNER JOIN nt_svr_dbms B ON A.mng_no = B.mng_no
+            LEFT JOIN (
+                SELECT * FROM cm_topo_item
+                WHERE dev_kind1 = 'DBMS'
+                AND   user_id = <include refid="selectMapUserId"/>
+            ) C ON B.dbms_no = C.mng_no
+            INNER JOIN nt_cfg_group D ON A.grp_no = D.grp_no
+        WHERE A.dev_kind1 = 'SVR'
+        AND   A.grp_no IN <include refid="selectAuthGrpNos"/>
+        AND   B.dbms_no NOT IN (
+            SELECT mng_no
+            FROM   cm_topo_item
+            WHERE  user_id = <include refid="selectMapUserId"/>
+            AND    dev_kind1 = 'DBMS'
+            AND    grp_no = #{grpNo}
+        )
+        <if test="_parameter.containsKey('sGrpName') and sGrpName != null and sGrpName != ''">
+            AND D.grp_name LIKE '%' || #{sGrpName} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDevName') and sDevName != null and sDevName != ''">
+            AND UPPER(CASE WHEN A.user_dev_name IS NULL OR A.user_dev_name = '' THEN A.dev_name ELSE A.user_dev_name END) LIKE '%' || UPPER(#{sDevName}) || '%'
+        </if>
+        <if test="_parameter.containsKey('sIp') and sIp != null and sIp != ''">
+            AND A.dev_ip LIKE '%' || #{sIp} || '%'
+        </if>
+        <if test="_parameter.containsKey('sDbmsName') and sDbmsName != null and sDbmsName != ''">
+            AND B.dbms_nm LIKE '%' || #{sDbmsName} || '%'
+        </if>
+    </select>
+
+    <update id="insertDbmsItem">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                dev_kind1, dev_kind2, usr_kind
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.dbmsNo},
+                'DBMS',
+                COALESCE(#{item.dbmsKind}, 'DBMS'),
+                #{item.dbmsKind}
+            )
+        </foreach>
+    </update>
+
+    <!-- ==================== 일괄추가 ==================== -->
+    <select id="selectRegItemCheck" resultType="map">
+        SELECT A.mng_no AS "mngNo", B.item_no AS "itemNo"
+        FROM cm_dev10 A
+            LEFT JOIN (
+                SELECT item_no, mng_no
+                FROM   cm_topo_item
+                WHERE  grp_no = #{grpNo}
+                AND    dev_kind1 != 'GRP'
+            ) B ON A.mng_no = B.mng_no
+        WHERE dev_ip = #{devIp}
+    </select>
+
+    <update id="insertMeasureMultiDevItem">
+        <foreach collection="multiList" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                xpoint, ypoint, dev_kind1, dev_kind2
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                #{item.mngNo},
+                #{item.xPoint},
+                #{item.yPoint},
+                <choose>
+                    <when test="item.devKind1 != null">
+                        #{item.devKind1},
+                    </when>
+                    <otherwise>
+                        'DEV',
+                    </otherwise>
+                </choose>
+                #{item.devKind2}
+            )
+        </foreach>
+    </update>
+
+    <update id="insertMeasureMultiDevEtcItem">
+        <foreach collection="etcList" item="item" separator=";">
+            INSERT INTO cm_topo_item (
+                user_id, item_no, grp_no, mng_no,
+                xpoint, ypoint, dev_kind1, dev_kind2
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT COALESCE(MAX(item_no), 0) + 1 FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{grpNo},
+                0,
+                #{item.xPoint},
+                #{item.yPoint},
+                'ETC',
+                #{item.devKind2}
+            );
+
+            INSERT INTO cm_topo_etc (
+                user_id, item_no, dev_name, dev_ip, icmp_polling
+            )
+            VALUES (
+                <include refid="selectMapUserId"/>,
+                (SELECT MAX(item_no) FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+                #{item.devName},
+                #{item.devIp},
+                'N'
+            )
+        </foreach>
+    </update>
+
+</mapper>

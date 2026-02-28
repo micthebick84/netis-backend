@@ -1,0 +1,566 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.ModeSettingMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.ErrActionDto" id="resultErrAction">
+        <result property="seqNo"       column="seq_no"/>
+        <result property="evtName"     column="evt_name"/>
+        <result property="engEvtName"  column="eng_evt_name"/>
+        <result property="grpName"     column="grp_name"/>
+        <result property="sumSec"      column="sum_sec"/>
+        <result property="errLevel"    column="err_level"/>
+        <result property="mngNo"       column="mng_no"/>
+        <result property="devIp"       column="dev_ip"/>
+        <result property="maintUser"   column="maint_user"/>
+        <result property="maintTel"    column="maint_tel"/>
+        <result property="receiptMemo" column="receipt_memo"/>
+        <result property="status"      column="status"/>
+        <result property="evtCause"    column="evt_cause"/>
+        <result property="memo"        column="memo"/>
+        <result property="errType"     column="err_type"/>
+        <result property="errTarget"   column="err_target"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.TopoEnvSettingDto" id="resultTopoEnvSetting">
+        <result property="refreshTime"    column="refresh_time"/>
+        <result property="showLabel"      column="show_label"/>
+        <result property="lineColor"      column="line_color"/>
+        <result property="pollingColor"   column="polling_color"/>
+        <result property="fontColor"      column="font_color"/>
+        <result property="fontBgColor"    column="font_bg_color"/>
+        <result property="alarmChk"       column="alarm_chk"/>
+        <result property="alarmLv1Chk"    column="alarm_lv1_chk"/>
+        <result property="alarmLv2Chk"    column="alarm_lv2_chk"/>
+        <result property="alarmLv3Chk"    column="alarm_lv3_chk"/>
+        <result property="alarmLv4Chk"    column="alarm_lv4_chk"/>
+        <result property="alarmLv5Chk"    column="alarm_lv5_chk"/>
+        <result property="alarmLv1Path"   column="alarm_lv1_path"/>
+        <result property="alarmLv2Path"   column="alarm_lv2_path"/>
+        <result property="alarmLv3Path"   column="alarm_lv3_path"/>
+        <result property="alarmLv4Path"   column="alarm_lv4_path"/>
+        <result property="alarmLv5Path"   column="alarm_lv5_path"/>
+        <result property="jsonConf"       column="json_conf"/>
+        <result property="showIcmpPoll"   column="show_icmp_poll"/>
+        <result property="showApEvent"    column="show_ap_event"/>
+        <result property="showVmEvent"    column="show_vm_event"/>
+        <result property="digitClockConf" column="digitclock_conf"/>
+        <result property="slideGrpConf"   column="slide_grp_conf"/>
+        <result property="helpLineConf"   column="helpline_conf"/>
+    </resultMap>
+
+    <!-- COM_IMG list (icons / backgrounds) -->
+    <select id="selectComImgList" resultType="com.example.netisbackend.dto.topology.ComImgDto">
+        SELECT img_no,
+               img_name,
+               img_uid,
+               img_kind1,
+               img_kind2,
+               img_kind3,
+               s_conf,
+               sort_idx,
+               is_display
+        FROM   com_img
+        WHERE  img_kind1 = 'MAP'
+          AND  img_kind2 = #{imgKind2}
+        <if test="_parameter.containsKey('isDisplay')">
+          AND  is_display = #{isDisplay}
+        </if>
+        ORDER BY sort_idx, img_name
+    </select>
+
+    <select id="selectComImgInfo" resultType="com.example.netisbackend.dto.topology.ComImgDto">
+        SELECT img_no,
+               img_name,
+               img_uid,
+               img_kind1,
+               img_kind2,
+               img_kind3,
+               s_conf,
+               sort_idx,
+               is_display
+        FROM   com_img
+        WHERE  img_no = #{imgNo}
+    </select>
+
+    <!-- Insert COM_IMG -->
+    <insert id="insertComImg">
+        <selectKey keyProperty="imgNo" resultType="long" order="BEFORE">
+            SELECT COALESCE(MAX(img_no), 0) + 1 FROM com_img
+        </selectKey>
+        INSERT INTO com_img (
+            img_no, img_name, img_uid, img, img_kind1, img_kind2, s_conf
+        )
+        VALUES (
+            #{imgNo}, #{imgName}, #{imgUid}, #{img}, 'MAP', #{imgKind2}, 1
+        )
+    </insert>
+
+    <!-- Update COM_IMG -->
+    <update id="updateComImg">
+        <foreach collection="imgList" item="item" separator=";">
+            UPDATE com_img
+            SET    img_name   = #{item.imgName},
+                   sort_idx   = #{item.sortIdx},
+                   is_display = #{item.isDisplay}
+            WHERE  img_no = #{item.imgNo}
+        </foreach>
+    </update>
+
+    <!-- Delete COM_IMG -->
+    <delete id="deleteComImg">
+        DELETE FROM com_img
+        WHERE  img_kind1 = 'MAP'
+          AND  img_kind2 = #{imgKind2}
+          AND  img_no IN (
+            <foreach collection="imgList" item="item" separator=",">
+                #{item.imgNo}
+            </foreach>
+          )
+    </delete>
+
+    <!-- Update background image -->
+    <update id="updateBgImg">
+        UPDATE cm_topo_group
+        SET    bg_file_nm = #{bgFileNm}
+        WHERE  user_id = <include refid="selectMapUserId"/>
+          AND  grp_no = #{grpNo}
+    </update>
+
+    <!-- Insert base group -->
+    <insert id="insertBaseGrp">
+        INSERT INTO cm_topo_group (
+            user_id, grp_no, grp_name, grp_parent
+        )
+        VALUES (
+            #{userId}, 1, '전체', 0
+        )
+    </insert>
+
+    <!-- Event list sub-query -->
+    <sql id="selectEvtList">
+        (
+        SELECT *
+        FROM (
+            SELECT A.*, B.user_dev_name, B.dev_name, B.dev_ip,
+                   CASE
+                       WHEN A.src_type IN ('DEV','SVR','ESM') THEN
+                           CASE WHEN (SELECT COUNT(*)
+                                      FROM   cm_dev_hist T1
+                                      WHERE  TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMMDDHH24MISS')
+                                             BETWEEN CONCAT(T1.from_yyyymmdd, T1.from_hhmmss)
+                                                 AND CONCAT(T1.to_yyyymmdd, T1.to_hhmmss)
+                                        AND  is_evt = 0
+                                        AND  mng_no = A.src_mng_no) = 0
+                                THEN A.evt_level ELSE -2 END
+                       WHEN A.src_type = 'IF' THEN
+                           CASE WHEN (SELECT COUNT(*)
+                                      FROM   cm_if_hist T1
+                                      WHERE  TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMMDDHH24MISS')
+                                             BETWEEN CONCAT(T1.from_yyyymmdd, T1.from_hhmmss)
+                                                 AND CONCAT(T1.to_yyyymmdd, T1.to_hhmmss)
+                                        AND  is_evt = 0
+                                        AND  mng_no = A.src_mng_no
+                                        AND  if_idx = A.src_idx) = 0
+                                THEN A.evt_level ELSE -2 END
+                       ELSE
+                           CASE WHEN A.progress_state = '조치중' THEN -1 ELSE A.evt_level END
+                   END AS evt_level_tmp
+            FROM   cm_evt A,
+                   (SELECT mng_no, user_dev_name, dev_name, dev_ip, grp_no
+                    FROM   cm_dev10
+                    WHERE  grp_no IN (
+                        SELECT DISTINCT sub_no
+                        FROM   nt_cfg_leaf
+                        WHERE  grp_no IN (
+                            SELECT nt_grp_no FROM com_auth_group_subgrp WHERE auth_grp_no = #{authGrpNo}
+                        )
+                    )) B
+            WHERE  A.src_mng_no = B.mng_no
+              AND  A.status = 'C'
+              AND  (A.progress_state IS NULL OR A.progress_state != '완료')
+              AND  A.src_type IN ('DEV', 'IF', 'AP', 'FMS', 'SYSLOG', 'TRAP', 'ESM', 'SVR')
+            UNION ALL
+            SELECT A.*, '' AS user_dev_name, '' AS dev_name, '' AS dev_ip, 0 AS evt_level_tmp
+            FROM   cm_evt A
+            WHERE  A.status = 'C'
+              AND  (A.progress_state IS NULL OR A.progress_state != '완료')
+              AND  A.src_type NOT IN ('DEV', 'IF', 'AP', 'FMS', 'SYSLOG', 'TRAP', 'ESM', 'SVR', 'RACK')
+            UNION ALL
+            SELECT A.*, '' AS user_dev_name, rack_name AS dev_name, rack_ip AS dev_ip,
+                   CASE WHEN A.progress_state = '조치중' THEN -1 ELSE A.evt_level END AS evt_level_tmp
+            FROM   cm_evt A, (
+                SELECT * FROM s_cm_rack
+                WHERE  grp_no IN (
+                    SELECT DISTINCT sub_no
+                    FROM   nt_cfg_grp_leaf
+                    WHERE  grp_no IN (SELECT nt_grp_no FROM com_auth_group_subgrp WHERE auth_grp_no = #{authGrpNo})
+                      AND  grp_type = 7
+                )
+            ) B
+            WHERE  A.status = 'C'
+              AND  A.src_mng_no = B.rack_no
+              AND  (A.progress_state IS NULL OR A.progress_state != '완료')
+              AND  A.src_type = 'RACK'
+        ) S
+        WHERE evt_level_tmp != -2
+        )
+    </sql>
+
+    <!-- Error action list -->
+    <select id="selectErrActionList" resultMap="resultErrAction">
+        SELECT DISTINCT
+               A.seq_no,
+               B.evt_name,
+               B.eng_evt_name,
+               CASE
+                   WHEN src_type = 'DEV' OR src_type = 'SYSLOG' OR src_type = 'ESM' OR src_type = 'RACK' THEN
+                       (SELECT grp_name FROM cm_dev10 T1 JOIN nt_cfg_group T2 ON T1.grp_no = T2.grp_no WHERE T1.mng_no = A.src_mng_no)
+                   WHEN src_type = 'IF' THEN
+                       (SELECT grp_name FROM cm_dev10 T1 JOIN cm_dev20 T2 ON T1.mng_no = T2.mng_no JOIN nt_cfg_group T3 ON T1.grp_no = T3.grp_no
+                        WHERE T1.mng_no = A.src_mng_no AND T2.if_idx = A.src_idx)
+                   WHEN src_type = 'SUB' THEN
+                       (SELECT grp_name FROM nt_cfg_subnet T1 JOIN nt_cfg_group T2 ON T1.grp_no = T2.grp_no WHERE T1.sub_no = A.src_sub_no)
+                   WHEN src_type = 'SVR' THEN
+                       (SELECT grp_name FROM cm_dev10 T1 JOIN nt_cfg_group T2 ON T1.grp_no = T2.grp_no
+                        WHERE T1.mng_no = A.src_mng_no AND T1.dev_kind1 = 'SVR')
+                   WHEN src_type = 'AP' THEN
+                       (SELECT grp_name FROM nt_cfg_group T1 JOIN cm_dev_ap T2 ON T1.grp_no = T2.grp_no
+                        WHERE T2.mng_no = A.src_mng_no
+                          AND COALESCE(A.src_mac, A.src_ip) = CASE WHEN A.src_mac IS NULL THEN T2.ap_ip ELSE T2.ap_mac END
+                        LIMIT 1)
+               END AS grp_name,
+               A.sum_sec,
+               CASE A.progress_state
+                   WHEN '조치중' THEN '조치중'
+                   ELSE
+                       CASE A.evt_level
+                           WHEN 1 THEN '정보'
+                           WHEN 2 THEN '주의'
+                           WHEN 3 THEN '알람'
+                           WHEN 4 THEN '경보'
+                           WHEN 5 THEN '장애'
+                       END
+               END AS err_level,
+               CASE src_type
+                   WHEN 'ESM'  THEN A.src_mng_no
+                   WHEN 'DEV'  THEN A.src_mng_no
+                   WHEN 'IF'   THEN A.src_mng_no
+                   WHEN 'GRP'  THEN A.src_grp_no
+                   WHEN 'SUB'  THEN A.src_sub_no
+                   WHEN 'SVR'  THEN A.src_mng_no
+                   WHEN 'RACK' THEN A.src_mng_no
+               END AS mng_no,
+               CASE
+                   WHEN src_type = 'DEV' OR src_type = 'SYSLOG' OR src_type = 'ESM' OR src_type = 'RACK' THEN
+                       (SELECT dev_ip FROM cm_dev10 T1 WHERE T1.mng_no = A.src_mng_no)
+                   WHEN src_type = 'IF' THEN
+                       (SELECT if_ip FROM cm_dev10 T1 JOIN cm_dev20 T2 ON T1.mng_no = T2.mng_no
+                        WHERE T1.mng_no = A.src_mng_no AND T2.if_idx = A.src_idx)
+                   WHEN src_type = 'SUB' THEN
+                       (SELECT ip FROM nt_cfg_subnet WHERE sub_no = A.src_sub_no)
+                   WHEN src_type = 'SVR' THEN
+                       (SELECT dev_ip FROM cm_dev10 WHERE mng_no = A.src_mng_no AND dev_kind1 = 'SVR')
+                   WHEN src_type = 'AP' THEN
+                       (SELECT COALESCE(ap_mac, ap_ip) FROM cm_dev_ap
+                        WHERE mng_no = A.src_mng_no
+                          AND COALESCE(A.src_mac, A.src_ip) = CASE WHEN A.src_mac IS NULL THEN ap_ip ELSE ap_mac END
+                        LIMIT 1)
+               END AS dev_ip,
+               A.maint_user,
+               A.maint_tel,
+               A.receipt_memo,
+               COALESCE(NULLIF(progress_state, ''), '진행중') AS status,
+               A.evt_cause,
+               A.memo,
+               CASE src_type
+                   WHEN 'DEV' THEN '장비'
+                   WHEN 'IF'  THEN '회선'
+                   WHEN 'GRP' THEN '그룹'
+                   WHEN 'SUB' THEN '서브넷'
+                   WHEN 'SVR' THEN '서버'
+                   ELSE src_type
+               END AS err_type,
+               CASE
+                   WHEN src_type = 'DEV' OR src_type = 'SYSLOG' OR src_type = 'ESM' OR src_type = 'RACK' THEN
+                       (SELECT CONCAT(CASE WHEN user_dev_name IS NULL OR user_dev_name = '' THEN dev_name ELSE user_dev_name END,
+                                      '[', dev_ip, ']')
+                        FROM cm_dev10 T1 WHERE T1.mng_no = A.src_mng_no)
+                   WHEN src_type = 'IF' THEN
+                       (SELECT CONCAT(CASE WHEN T1.user_dev_name IS NULL OR T1.user_dev_name = '' THEN T1.dev_name ELSE T1.user_dev_name END,
+                                      '[', T1.dev_ip, '] - ',
+                                      CASE WHEN T2.user_if_name IS NULL OR T2.user_if_name = '' THEN T2.if_name ELSE T2.user_if_name END,
+                                      CASE WHEN if_alias IS NULL OR if_alias = '' THEN '' ELSE CONCAT('[', if_alias, ']') END)
+                        FROM cm_dev10 T1 JOIN cm_dev20 T2 ON T1.mng_no = T2.mng_no
+                        WHERE T1.mng_no = A.src_mng_no AND T2.if_idx = A.src_idx)
+                   WHEN src_type = 'GRP' THEN
+                       (SELECT grp_name FROM nt_cfg_group WHERE grp_no = A.src_grp_no)
+                   WHEN src_type = 'SUB' THEN
+                       (SELECT CONCAT(sub_name, '[', ip, ']') FROM nt_cfg_subnet WHERE sub_no = A.src_sub_no)
+                   WHEN src_type = 'SVR' THEN
+                       (SELECT CONCAT(CASE WHEN user_dev_name IS NULL OR user_dev_name = '' THEN dev_name ELSE user_dev_name END,
+                                      '[', dev_ip, ']')
+                        FROM cm_dev10 WHERE mng_no = A.src_mng_no AND dev_kind1 = 'SVR')
+                   WHEN src_type = 'AP' THEN
+                       (SELECT CONCAT(ap_name, '[', COALESCE(ap_mac, ap_ip), ']')
+                        FROM cm_dev_ap
+                        WHERE mng_no = A.src_mng_no
+                          AND COALESCE(A.src_mac, A.src_ip) = CASE WHEN A.src_mac IS NULL THEN ap_ip ELSE ap_mac END
+                        LIMIT 1)
+               END AS err_target
+        FROM   <include refid="selectEvtList"/> A
+               JOIN cm_evt_code B ON A.code = B.code
+               JOIN cm_dev10 C ON A.src_mng_no = C.mng_no
+        WHERE  B.profile_no = 0
+          AND  A.status = 'C'
+          AND  C.grp_no IN (SELECT sub_no FROM cm_topo_leaf WHERE grp_no = #{grpNo})
+    </select>
+
+    <!-- Update error action -->
+    <update id="updateErrAction">
+        UPDATE cm_evt
+        SET    progress_state = #{progressState},
+               evt_cause      = #{evtCause},
+               receipt_memo   = #{receiptMemo},
+               memo           = #{memo},
+               maint_user     = #{maintUser},
+               maint_tel      = #{maintTel},
+               receipt_user   = #{userId},
+               receipt_date   = CURRENT_TIMESTAMP
+        WHERE  seq_no = #{seqNo}
+    </update>
+
+    <!-- Batch update error action -->
+    <update id="updateAllErrAction">
+        UPDATE cm_evt
+        SET    progress_state = '조치중',
+               evt_cause      = #{evtCause},
+               receipt_memo   = #{receiptMemo},
+               memo           = #{memo},
+               maint_user     = #{maintUser},
+               maint_tel      = #{maintTel},
+               receipt_user   = #{userId},
+               receipt_date   = CURRENT_TIMESTAMP
+        WHERE  seq_no IN (
+            <foreach collection="seqNos" item="seqNo" separator=",">
+                #{seqNo}
+            </foreach>
+        )
+    </update>
+
+    <!-- Call event proc (PostgreSQL function) -->
+    <select id="procEventProc" resultType="void" statementType="CALLABLE">
+        SELECT event_proc_topo()
+    </select>
+
+    <!-- Update bezier curve positions -->
+    <update id="updateMapBezierCurvePosition">
+        <foreach collection="linkList" item="item" separator=";">
+            UPDATE cm_topo_link
+            SET    curve_x1 = #{item.curveX1},
+                   curve_y1 = #{item.curveY1},
+                   curve_x2 = #{item.curveX2},
+                   curve_y2 = #{item.curveY2}
+            WHERE  link_no = #{item.linkNo}
+              AND  user_id = <include refid="selectMapUserId"/>
+        </foreach>
+    </update>
+
+    <!-- Update link label conf -->
+    <update id="updateMaplinkLabelConf">
+        <foreach collection="linkLabelList" item="item" separator=";">
+            UPDATE cm_topo_link
+            SET    line_label_conf = #{item.lineLabelConf}
+            WHERE  link_no = #{item.linkNo}
+              AND  user_id = <include refid="selectMapUserId"/>
+        </foreach>
+    </update>
+
+    <!-- Update item positions -->
+    <update id="updateMapItemPosition">
+        <foreach collection="itemList" item="item" separator=";">
+            UPDATE cm_topo_item
+            SET    xpoint = #{item.xpoint},
+                   ypoint = #{item.ypoint}
+            WHERE  item_no = #{item.itemNo}
+              AND  user_id = <include refid="selectMapUserId"/>
+        </foreach>
+    </update>
+
+    <!-- Environment settings -->
+    <select id="selectTopoEnvSetting" resultMap="resultTopoEnvSetting">
+        SELECT refresh_time,
+               show_label,
+               line_color,
+               polling_color,
+               font_color,
+               font_bg_color,
+               alarm_chk,
+               alarm_lv1_chk,
+               alarm_lv2_chk,
+               alarm_lv3_chk,
+               alarm_lv4_chk,
+               alarm_lv5_chk,
+               alarm_lv1_path,
+               alarm_lv2_path,
+               alarm_lv3_path,
+               alarm_lv4_path,
+               alarm_lv5_path,
+               json_conf,
+               show_icmp_poll,
+               show_ap_event,
+               show_vm_event,
+               digitclock_conf,
+               slide_grp_conf,
+               helpline_conf
+        FROM   cm_topo_user
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <select id="selectEnvSettingExistCnt" resultType="int">
+        SELECT COUNT(*)
+        FROM   cm_topo_user
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <update id="updateTopoEnvSetting">
+        <choose>
+            <when test="existCnt == 0">
+                INSERT INTO cm_topo_user (
+                    user_id, refresh_time, show_label, line_color, polling_color, alarm_chk,
+                    alarm_lv1_chk, alarm_lv2_chk, alarm_lv3_chk, alarm_lv4_chk, alarm_lv5_chk,
+                    alarm_lv1_path, alarm_lv2_path, alarm_lv3_path, alarm_lv4_path, alarm_lv5_path,
+                    font_color, font_bg_color, json_conf, show_icmp_poll, show_ap_event, show_vm_event
+                )
+                VALUES (
+                    <include refid="selectMapUserId"/>,
+                    #{refreshTime}, #{showLabel}, #{lineColor}, #{pollingColor}, #{alarmChk},
+                    #{alarmLv1Chk}, #{alarmLv2Chk}, #{alarmLv3Chk}, #{alarmLv4Chk}, #{alarmLv5Chk},
+                    #{alarmLv1Path}, #{alarmLv2Path}, #{alarmLv3Path}, #{alarmLv4Path}, #{alarmLv5Path},
+                    #{fontColor}, #{fontBgColor}, #{jsonConf}, #{showIcmpPoll}, #{showApEvent}, #{showVmEvent}
+                )
+            </when>
+            <otherwise>
+                UPDATE cm_topo_user
+                SET    refresh_time   = #{refreshTime},
+                       show_label     = #{showLabel},
+                       line_color     = #{lineColor},
+                       polling_color  = #{pollingColor},
+                       alarm_chk      = #{alarmChk},
+                       alarm_lv1_chk  = #{alarmLv1Chk},
+                       alarm_lv2_chk  = #{alarmLv2Chk},
+                       alarm_lv3_chk  = #{alarmLv3Chk},
+                       alarm_lv4_chk  = #{alarmLv4Chk},
+                       alarm_lv5_chk  = #{alarmLv5Chk},
+                       alarm_lv1_path = #{alarmLv1Path},
+                       alarm_lv2_path = #{alarmLv2Path},
+                       alarm_lv3_path = #{alarmLv3Path},
+                       alarm_lv4_path = #{alarmLv4Path},
+                       alarm_lv5_path = #{alarmLv5Path},
+                       font_color     = #{fontColor},
+                       font_bg_color  = #{fontBgColor},
+                       json_conf      = #{jsonConf},
+                       show_icmp_poll = #{showIcmpPoll},
+                       show_ap_event  = #{showApEvent},
+                       show_vm_event  = #{showVmEvent}
+                WHERE  user_id = <include refid="selectMapUserId"/>
+            </otherwise>
+        </choose>
+    </update>
+
+    <!-- Sound setting update -->
+    <update id="updateSoundSetting">
+        UPDATE cm_topo_user
+        SET
+        <choose>
+            <when test="fileIdx==1">alarm_lv1_path = #{fileName}</when>
+            <when test="fileIdx==2">alarm_lv2_path = #{fileName}</when>
+            <when test="fileIdx==3">alarm_lv3_path = #{fileName}</when>
+            <when test="fileIdx==4">alarm_lv4_path = #{fileName}</when>
+            <when test="fileIdx==5">alarm_lv5_path = #{fileName}</when>
+        </choose>
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- DigitClock setting -->
+    <update id="updateDigitClockSetting">
+        UPDATE cm_topo_user
+        SET    digitclock_conf = #{digitClockConf}
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- Model-based icon image list -->
+    <select id="selectImgByModelList" resultType="com.example.netisbackend.dto.topology.TopoItemImgDto">
+        SELECT B.seq_no,
+               A.dev_kind1,
+               A.dev_kind2,
+               A.model,
+               B.img_file_nm,
+               B.img_name
+        FROM   (
+                SELECT dev_kind1, dev_kind2, model
+                FROM   cm_dev10
+                GROUP BY dev_kind1, dev_kind2, model
+               ) A
+               LEFT OUTER JOIN (
+                SELECT A1.*, B1.img_name
+                FROM   cm_topo_item_img A1
+                       JOIN com_img B1 ON A1.img_file_nm = B1.img_uid
+                WHERE  B1.img_kind1 = 'MAP'
+                  AND  B1.img_kind2 = 'IMG'
+               ) B ON (A.dev_kind1 = B.dev_kind1 AND A.dev_kind2 = B.dev_kind2 AND A.model = B.model)
+        ORDER BY A.dev_kind1, A.dev_kind2, A.model
+    </select>
+
+    <!-- Save model image (upsert) -->
+    <update id="updateImgByModel">
+        <foreach collection="list" item="item" separator=";">
+            INSERT INTO cm_topo_item_img (dev_kind1, dev_kind2, model, img_file_nm)
+            VALUES (#{item.devKind1}, #{item.devKind2}, #{item.model}, #{item.imgFileNm})
+            ON CONFLICT (dev_kind1, dev_kind2, model)
+            DO UPDATE SET img_file_nm = EXCLUDED.img_file_nm
+        </foreach>
+    </update>
+
+    <!-- Batch apply model images -->
+    <update id="updateImgByModelBatchSet">
+        UPDATE cm_topo_item A
+        SET    usr_kind = B.img_file_nm
+        FROM   (
+            SELECT A1.mng_no, A1.dev_kind1, A1.dev_kind2, A1.model, B1.img_file_nm
+            FROM   cm_dev10 A1
+                   JOIN cm_topo_item_img B1 ON A1.dev_kind1 = B1.dev_kind1
+                                            AND A1.dev_kind2 = B1.dev_kind2
+                                            AND A1.model = B1.model
+        ) B
+        WHERE  A.dev_kind1 != 'GRP'
+          AND  A.mng_no = B.mng_no
+          AND  A.user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- Slide show setting -->
+    <update id="updateTopoSlideSetting">
+        UPDATE cm_topo_user
+        SET    slide_grp_conf = #{slideGrpConf}
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- Slide show setting query -->
+    <select id="selectTopoSlideSetting" resultType="hashmap">
+        SELECT user_id, slide_grp_conf
+        FROM   cm_topo_user
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- HelpLine setting -->
+    <update id="updateHelpLineSetting">
+        UPDATE cm_topo_user
+        SET    helpline_conf = #{helpLineConf}
+        WHERE  user_id = <include refid="selectMapUserId"/>
+    </update>
+
+</mapper>

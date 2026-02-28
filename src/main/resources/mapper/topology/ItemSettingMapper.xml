@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.ItemSettingMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.EtcAttrDto" id="resultEtcAttr">
+        <result property="itemNo" column="item_no"/>
+        <result property="devName" column="dev_name"/>
+        <result property="devIp" column="dev_ip"/>
+        <result property="url" column="url"/>
+        <result property="icmpPolling" column="icmp_polling"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.CodeDto" id="resultCode">
+        <result property="num" column="num"/>
+        <result property="codeId" column="code_id"/>
+        <result property="codeValue1" column="code_value1"/>
+        <result property="codeValue2" column="code_value2"/>
+        <result property="codeValue3" column="code_value3"/>
+        <result property="codeValue4" column="code_value4"/>
+        <result property="codeValue5" column="code_value5"/>
+        <result property="codeValue6" column="code_value6"/>
+        <result property="codeValue7" column="code_value7"/>
+        <result property="codeValue8" column="code_value8"/>
+        <result property="memo" column="memo"/>
+    </resultMap>
+
+    <!-- 그룹이동 -->
+    <update id="updateGrpNoForItem">
+        UPDATE cm_topo_item
+        SET grp_no = #{newGrpNo}
+        WHERE item_no IN (
+            <foreach collection="itemNos" item="itemNo" separator=",">
+                #{itemNo}
+            </foreach>
+        )
+          AND user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- 배경 변경 -->
+    <update id="updateBgImg">
+        UPDATE cm_topo_group
+        SET bg_file_nm = #{bgFileNm}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND grp_no = #{grpNo}
+    </update>
+
+    <!-- 아이콘 크기 -->
+    <update id="updateItemSize">
+        UPDATE cm_topo_item
+        SET item_size = #{itemSize}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no IN (
+              <foreach collection="itemNos" item="itemNo" separator=",">
+                  #{itemNo}
+              </foreach>
+          )
+    </update>
+
+    <!-- 폰트 크기 -->
+    <update id="updateFontSize">
+        UPDATE cm_topo_item
+        SET font_size = #{fontSize}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no IN (
+              <foreach collection="itemNos" item="itemNo" separator=",">
+                  #{itemNo}
+              </foreach>
+          )
+    </update>
+
+    <!-- 아이콘 이미지 -->
+    <update id="updateItemImg">
+        UPDATE cm_topo_item
+        SET usr_kind = #{usrKind}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no IN (
+              <foreach collection="itemNos" item="itemNo" separator=",">
+                  #{itemNo}
+              </foreach>
+          )
+    </update>
+
+    <!-- 타입 변경 -->
+    <update id="updateItemType">
+        UPDATE cm_topo_item
+        SET dev_kind2 = #{devKind2},
+            usr_kind = CONCAT(#{devKind2}, '_A1')
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no = #{itemNo}
+    </update>
+
+    <!-- 별칭 변경 -->
+    <update id="updateItemAlias">
+        UPDATE cm_topo_item
+        SET item_alias = #{itemAlias}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no = #{itemNo}
+    </update>
+
+    <!-- 아이템 정보 변경 -->
+    <update id="updateItemInfo">
+        UPDATE cm_topo_item
+        SET item_alias = #{itemAlias},
+            item_size = #{itemSize},
+            font_size = #{fontSize},
+            item_conf = #{itemConf},
+            show_label = #{showLabel}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no = #{itemNo};
+
+        <if test="_parameter.containsKey('devKind1') and devKind1 == 'GRP'">
+            UPDATE cm_topo_group
+            SET grp_name = #{grpName},
+                view_type = #{viewType}
+            WHERE user_id = <include refid="selectMapUserId"/>
+              AND grp_no = #{grpNo};
+        </if>
+    </update>
+
+    <!-- 다중 아이템 정보변경 -->
+    <update id="updateMultiItemInfo">
+        UPDATE cm_topo_item
+        SET item_size = #{itemSize},
+            font_size = #{fontSize},
+            item_conf = #{itemConf},
+            show_label = #{showLabel}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no IN (
+              <foreach collection="itemNos" item="itemNo" separator=",">
+                  #{itemNo}
+              </foreach>
+          )
+    </update>
+
+    <!-- 아이템 정보 초기화 (PostgreSQL: jsonb - 연산자로 키 제거) -->
+    <update id="updateInitItemInfo">
+        UPDATE cm_topo_item
+        <set>
+            <if test="_parameter.containsKey('itemSize') and itemSize == 1">
+                item_size = NULL,
+            </if>
+            <if test="_parameter.containsKey('fontSize') and fontSize == 1">
+                font_size = NULL,
+            </if>
+            <if test="_parameter.containsKey('jsonKeyList') and jsonKeyList.size() > 0">
+                item_conf = item_conf::jsonb
+                <foreach collection="jsonKeyList" item="item">
+                    - '${item}'
+                </foreach>
+                ,
+            </if>
+        </set>
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no = #{itemNo}
+    </update>
+
+    <!-- 다중 아이템 정보 초기화 (PostgreSQL: jsonb - 연산자로 키 제거) -->
+    <update id="updateInitMultiItemInfo">
+        UPDATE cm_topo_item
+        <set>
+            <if test="_parameter.containsKey('itemSize') and itemSize == 1">
+                item_size = NULL,
+            </if>
+            <if test="_parameter.containsKey('fontSize') and fontSize == 1">
+                font_size = NULL,
+            </if>
+            <if test="_parameter.containsKey('jsonKeyList') and jsonKeyList.size() > 0">
+                item_conf = item_conf::jsonb
+                <foreach collection="jsonKeyList" item="item">
+                    - '${item}'
+                </foreach>
+                ,
+            </if>
+        </set>
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no IN (
+              <foreach collection="itemNos" item="itemNo" separator=",">
+                  #{itemNo}
+              </foreach>
+          )
+    </update>
+
+    <!-- 그룹명 변경 -->
+    <update id="updateGrpName">
+        UPDATE cm_topo_group
+        SET grp_name = #{grpName}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND grp_no = #{mngNo}
+    </update>
+
+    <!-- 임의장비 속성 조회 -->
+    <select id="selectEtcAttr" resultMap="resultEtcAttr">
+        SELECT item_no,
+               dev_name,
+               dev_ip,
+               url,
+               icmp_polling
+        FROM cm_topo_etc
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no = #{itemNo}
+    </select>
+
+    <!-- 임의장비 속성 변경 -->
+    <update id="updateEtcAttr">
+        UPDATE cm_topo_etc
+        SET dev_name = #{devName},
+            dev_ip = #{devIp},
+            url = #{url},
+            icmp_polling = #{icmpPolling}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no = #{itemNo}
+    </update>
+
+    <!-- 메모 조회 -->
+    <select id="selectMemo" resultType="String">
+        SELECT user_content
+        FROM cm_topo_item
+        WHERE item_no = #{itemNo}
+          AND user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- 메모 저장 -->
+    <update id="updateMemo">
+        UPDATE cm_topo_item
+        SET user_content = #{memo}
+        WHERE item_no = #{itemNo}
+          AND user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- 그룹 > 명칭표시 ON/OFF -->
+    <update id="updateItemShowLabelForGrp">
+        UPDATE cm_topo_item
+        SET show_label = #{showLabel}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND grp_no = #{mngNo}
+    </update>
+
+    <!-- URL 템플릿 추가 (PostgreSQL: IFNULL→COALESCE) -->
+    <insert id="insertUrlSetTemplate">
+        INSERT INTO cm_url_template_code
+            (code_id, code_value1, code_value2, code_value3, code_value4, code_value5, code_value6, code_value7, code_value8, memo)
+        VALUES (
+            (SELECT COALESCE(MAX(code_id), 0) + 1 FROM cm_url_template_code),
+            #{httpSet}, #{type1}, #{type2}, #{type3}, #{type4}, #{type5}, #{type6}, #{type7}, #{templeName}
+        )
+    </insert>
+
+    <!-- URL 템플릿 조회 (PostgreSQL: @ROWNUM→ROW_NUMBER(), IFNULL→COALESCE) -->
+    <select id="selectUrlTemplate" resultMap="resultCode">
+        SELECT ROW_NUMBER() OVER (ORDER BY code_id DESC) AS num,
+               code_id,
+               COALESCE(code_value1, '') AS code_value1,
+               COALESCE(code_value2, '') AS code_value2,
+               COALESCE(code_value3, '') AS code_value3,
+               COALESCE(code_value4, '') AS code_value4,
+               COALESCE(code_value5, '') AS code_value5,
+               COALESCE(code_value6, '') AS code_value6,
+               COALESCE(code_value7, '') AS code_value7,
+               COALESCE(code_value8, '') AS code_value8,
+               memo
+        FROM cm_url_template_code
+        <if test="_parameter.containsKey('codeId') and codeId != null and codeId != ''">
+            WHERE code_id = #{codeId}
+        </if>
+        ORDER BY code_id DESC
+    </select>
+
+    <!-- URL 템플릿 수정 -->
+    <update id="updateUrlTemplate">
+        UPDATE cm_url_template_code
+        SET code_value1 = #{httpSet},
+            code_value2 = #{type1},
+            code_value3 = #{type2},
+            code_value4 = #{type3},
+            code_value5 = #{type4},
+            code_value6 = #{type5},
+            code_value7 = #{type6},
+            code_value8 = #{type7},
+            memo = #{templeName}
+        WHERE code_id = #{codeId}
+    </update>
+
+    <!-- URL 템플릿 삭제 -->
+    <delete id="deleteUrlTemplate">
+        DELETE FROM cm_url_template_code
+        WHERE code_id = #{codeId}
+    </delete>
+
+    <!-- URL 템플릿 지정 -->
+    <update id="updateDevUrlTemplate">
+        UPDATE cm_dev10
+        SET url_template_cd =
+            <choose>
+                <when test="urlSet == 'true'">
+                    #{codeId}
+                </when>
+                <otherwise>
+                    ''
+                </otherwise>
+            </choose>
+        WHERE mng_no = #{mngNo}
+    </update>
+
+    <!-- 장비 지정 URL 템플릿 조회 (PostgreSQL: IFNULL→COALESCE) -->
+    <select id="selectDevUrlTemplate" resultMap="resultCode">
+        SELECT A.code_id,
+               COALESCE(A.code_value1, '') AS code_value1,
+               COALESCE(A.code_value2, '') AS code_value2,
+               COALESCE(A.code_value3, '') AS code_value3,
+               COALESCE(A.code_value4, '') AS code_value4,
+               COALESCE(A.code_value5, '') AS code_value5,
+               COALESCE(A.code_value6, '') AS code_value6,
+               COALESCE(A.code_value7, '') AS code_value7,
+               COALESCE(A.code_value8, '') AS code_value8,
+               A.memo
+        FROM cm_url_template_code A
+        INNER JOIN cm_dev10 B ON A.code_id = B.url_template_cd
+        WHERE B.mng_no = #{mngNo}
+    </select>
+
+    <!-- URL 템플릿 호출 조회 (장비정보 치환) -->
+    <select id="selectDevUrlTemplateList" resultMap="resultCode">
+        SELECT code_id,
+               code_value1,
+               CASE code_value2
+                   WHEN '장비IP' THEN (SELECT dev_ip FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '호스트네임' THEN (SELECT dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '사용자장비명' THEN (SELECT user_dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   ELSE code_value2
+               END AS code_value2,
+               CASE code_value3
+                   WHEN '장비IP' THEN (SELECT dev_ip FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '호스트네임' THEN (SELECT dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '사용자장비명' THEN (SELECT user_dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   ELSE code_value3
+               END AS code_value3,
+               CASE code_value4
+                   WHEN '장비IP' THEN (SELECT dev_ip FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '호스트네임' THEN (SELECT dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '사용자장비명' THEN (SELECT user_dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   ELSE code_value4
+               END AS code_value4,
+               CASE code_value5
+                   WHEN '장비IP' THEN (SELECT dev_ip FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '호스트네임' THEN (SELECT dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '사용자장비명' THEN (SELECT user_dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   ELSE code_value5
+               END AS code_value5,
+               CASE code_value6
+                   WHEN '장비IP' THEN (SELECT dev_ip FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '호스트네임' THEN (SELECT dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '사용자장비명' THEN (SELECT user_dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   ELSE code_value6
+               END AS code_value6,
+               CASE code_value7
+                   WHEN '장비IP' THEN (SELECT dev_ip FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '호스트네임' THEN (SELECT dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '사용자장비명' THEN (SELECT user_dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   ELSE code_value7
+               END AS code_value7,
+               CASE code_value8
+                   WHEN '장비IP' THEN (SELECT dev_ip FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '호스트네임' THEN (SELECT dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   WHEN '사용자장비명' THEN (SELECT user_dev_name FROM cm_dev10 WHERE mng_no = #{mngNo})
+                   ELSE code_value8
+               END AS code_value8,
+               memo
+        FROM cm_url_template_code A
+        WHERE A.code_id = #{codeId}
+    </select>
+
+    <!-- 명칭 위치 -->
+    <update id="updateLabelPosition">
+        UPDATE cm_topo_item
+        SET item_conf = #{itemConf}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND item_no IN (
+              <foreach collection="itemNos" item="itemNo" separator=",">
+                  #{itemNo}
+              </foreach>
+          )
+    </update>
+
+    <!-- 연관 기본 그룹 설정 -->
+    <update id="updateRelationDefaultGrp">
+        UPDATE cm_topo_group
+        SET relation_grp_no = #{relationGrpNo}
+        WHERE user_id = <include refid="selectMapUserId"/>
+          AND grp_no = #{grpNo}
+    </update>
+
+</mapper>

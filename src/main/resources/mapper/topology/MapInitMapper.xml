@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.MapInitMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <sql id="selectAuthGrpNos">
+        (SELECT DISTINCT sub_no
+         FROM   nt_cfg_leaf
+         WHERE  grp_no IN (
+             SELECT nt_grp_no
+             FROM   com_auth_group_subgrp
+             WHERE  auth_grp_no = #{authGrpNo}))
+    </sql>
+
+    <!-- Map init auth check: inherited account returns 1, non-inherited returns 3 -->
+    <select id="selectMapAuth" resultType="int">
+        SELECT isshare
+        FROM   com_user
+        WHERE  user_id = #{userId}
+    </select>
+
+    <!-- Delete existing items -->
+    <delete id="deleteExistItem">
+        DELETE FROM cm_topo_group WHERE user_id = <include refid="selectMapUserId"/>;
+        DELETE FROM cm_topo_item WHERE user_id = <include refid="selectMapUserId"/>;
+        DELETE FROM cm_topo_etc WHERE user_id = <include refid="selectMapUserId"/>;
+        DELETE FROM cm_topo_link WHERE user_id = <include refid="selectMapUserId"/>;
+        DELETE FROM cm_topo_link_multi WHERE user_id = <include refid="selectMapUserId"/>;
+        DELETE FROM cm_topo_draw_tool WHERE user_id = <include refid="selectMapUserId"/>;
+    </delete>
+
+    <!-- Insert root group + sub-groups -->
+    <insert id="insertGroup">
+        INSERT INTO cm_topo_group (
+            grp_parent, grp_no, grp_name, user_id
+        )
+        VALUES (
+            0, 1,
+            (SELECT grp_name FROM nt_cfg_group WHERE grp_parent = 0 AND grp_type = 1 LIMIT 1),
+            <include refid="selectMapUserId"/>
+        );
+
+        INSERT INTO cm_topo_group (
+            user_id, grp_no, grp_name, grp_parent
+        )
+        SELECT user_id, grp_no, grp_name,
+               CASE
+                   WHEN (SELECT COUNT(*)
+                         FROM   nt_cfg_group
+                         WHERE  grp_no IN (
+                             SELECT DISTINCT sub_no
+                             FROM   nt_cfg_leaf
+                             WHERE  grp_no IN (
+                                 SELECT nt_grp_no
+                                 FROM   com_auth_group_subgrp
+                                 WHERE  auth_grp_no = #{authGrpNo}
+                             )
+                         )
+                           AND grp_no = T1.grp_parent
+                        ) > 0 THEN grp_parent
+                   ELSE 1
+               END AS grp_parent
+        FROM   (
+            SELECT DISTINCT
+                   <include refid="selectMapUserId"/> AS user_id,
+                   A.grp_no,
+                   A.grp_name,
+                   CASE WHEN A.grp_parent = 0 THEN 1 ELSE A.grp_parent END AS grp_parent
+            FROM   nt_cfg_group A
+            WHERE  grp_no IN (
+                SELECT DISTINCT sub_no
+                FROM   nt_cfg_leaf
+                WHERE  grp_no IN (
+                    SELECT nt_grp_no
+                    FROM   com_auth_group_subgrp
+                    WHERE  auth_grp_no = #{authGrpNo}
+                )
+            )
+              AND  grp_parent != 0
+        ) T1
+    </insert>
+
+    <!-- Insert group items (root + sub) -->
+    <insert id="insertGroupItem">
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, dev_kind1, dev_kind2,
+            usr_kind, mng_no, xpoint, ypoint, item_size, sh_evt
+        )
+        VALUES (
+            <include refid="selectMapUserId"/>,
+            0,
+            (SELECT COALESCE(MAX(item_no), 0) FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>),
+            'GRP', 'GROUP', 'GROUP_A1', 1, 300, 500, 3, 1
+        );
+
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, dev_kind1, dev_kind2,
+            usr_kind, mng_no, xpoint, ypoint, item_size, sh_evt, uniq_id
+        )
+        SELECT DISTINCT
+               <include refid="selectMapUserId"/>,
+               CASE WHEN grp_parent = 0 THEN 1 ELSE grp_parent END,
+               (SELECT COALESCE(MAX(item_no), 0) FROM cm_topo_item WHERE user_id = <include refid="selectMapUserId"/>)
+                   + ROW_NUMBER() OVER (ORDER BY grp_no),
+               'GRP', 'GROUP', 'GROUP_A1',
+               grp_no, 300, 500, 3, 1, grp_no
+        FROM   nt_cfg_group A
+        WHERE  grp_no IN <include refid="selectAuthGrpNos"/>
+          AND  grp_no != 0
+          AND  grp_parent != 0
+          AND  A.grp_type = 1
+    </insert>
+
+    <!-- Insert device items -->
+    <insert id="insertDevItem">
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, dev_kind1, dev_kind2,
+            usr_kind, mng_no, xpoint, ypoint, item_size, sh_evt
+        )
+        SELECT <include refid="selectMapUserId"/>,
+               grp_no,
+               (SELECT COALESCE(MAX(item_no), 0) FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>)
+                   + ROW_NUMBER() OVER (ORDER BY mng_no),
+               dev_kind1,
+               dev_kind2,
+               CONCAT(dev_kind2, '_A1'),
+               mng_no, 300, 500, 3, 1
+        FROM   cm_dev10 A
+        WHERE  grp_no IN <include refid="selectAuthGrpNos"/>
+    </insert>
+
+    <!-- Insert subnet items -->
+    <insert id="insertSubnetItem">
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, dev_kind1, dev_kind2,
+            usr_kind, mng_no, xpoint, ypoint, item_size, sh_evt
+        )
+        SELECT <include refid="selectMapUserId"/>,
+               grp_no,
+               (SELECT COALESCE(MAX(item_no), 0) FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>)
+                   + ROW_NUMBER() OVER (ORDER BY sub_no),
+               'SUB', 'SUBNET', 'SUBNET_A1',
+               sub_no, 300, 500, 3, 1
+        FROM   nt_cfg_subnet A
+        WHERE  grp_no IN (
+            SELECT grp_no
+            FROM   nt_cfg_group
+            WHERE  grp_no IN <include refid="selectAuthGrpNos"/>
+        )
+    </insert>
+
+    <!-- Insert server groups -->
+    <insert id="insertSvrGrp">
+        INSERT INTO cm_topo_group (
+            grp_parent, grp_no, grp_name, user_id
+        )
+        SELECT grp_parent, grp_no, grp_name, <include refid="selectMapUserId"/>
+        FROM   (
+            SELECT DISTINCT
+                   CASE WHEN grp_parent = 0 THEN 1 ELSE grp_parent END AS grp_parent,
+                   grp_no,
+                   grp_name
+            FROM   nt_cfg_group
+            WHERE  grp_type = 7
+              AND  grp_no IN (
+                  SELECT sub_no
+                  FROM   nt_cfg_grp_leaf
+                  WHERE  grp_no IN (SELECT nt_grp_no FROM com_auth_group_subgrp WHERE auth_grp_no = #{authGrpNo})
+              )
+        ) A;
+
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, dev_kind1, dev_kind2,
+            usr_kind, mng_no, xpoint, ypoint, item_size, sh_evt, uniq_id
+        )
+        SELECT DISTINCT
+               <include refid="selectMapUserId"/>,
+               CASE WHEN grp_parent = 0 THEN 1 ELSE grp_parent END,
+               (SELECT COALESCE(MAX(item_no), 0) FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>)
+                   + ROW_NUMBER() OVER (ORDER BY grp_no),
+               'GRP', 'GROUP', 'GROUP_A1',
+               grp_no, 300, 500, 3, 1, grp_no
+        FROM   nt_cfg_group A
+        WHERE  grp_type = 7
+          AND  grp_no IN (
+              SELECT sub_no
+              FROM   nt_cfg_grp_leaf
+              WHERE  grp_no IN (SELECT nt_grp_no FROM com_auth_group_subgrp WHERE auth_grp_no = #{authGrpNo})
+          )
+        ORDER BY grp_no
+    </insert>
+
+    <!-- Insert server items -->
+    <insert id="insertSvrItem">
+        INSERT INTO cm_topo_item (
+            user_id, grp_no, item_no, dev_kind1, dev_kind2,
+            usr_kind, mng_no, xpoint, ypoint, item_size, sh_evt
+        )
+        SELECT <include refid="selectMapUserId"/>,
+               grp_no,
+               (SELECT COALESCE(MAX(item_no), 0) FROM cm_topo_item A WHERE user_id = <include refid="selectMapUserId"/>)
+                   + ROW_NUMBER() OVER (ORDER BY rack_no),
+               'RACK', 'RACK', 'RACK_A1',
+               rack_no, 300, 500, 3, 1
+        FROM   s_cm_rack A
+        WHERE  grp_no IN (
+            SELECT DISTINCT sub_no
+            FROM   nt_cfg_grp_leaf
+            WHERE  grp_no IN (SELECT nt_grp_no FROM com_auth_group_subgrp WHERE auth_grp_no = #{authGrpNo})
+        )
+    </insert>
+
+    <!-- Select map user ID -->
+    <select id="selectMapId" resultType="String">
+        SELECT CASE WHEN isshare = 1 THEN parent_id ELSE user_id END
+        FROM   com_user
+        WHERE  user_id = #{userId}
+    </select>
+
+    <!-- Call sp_make_topo_leaf (PostgreSQL function) -->
+    <select id="procSpMakeTopoLeaf" resultType="void" statementType="CALLABLE">
+        SELECT sp_make_topo_leaf(#{userId})
+    </select>
+
+</mapper>

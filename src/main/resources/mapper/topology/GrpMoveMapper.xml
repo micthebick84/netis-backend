@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.GrpMoveMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapGrpTreeDto" id="resultGrpTree">
+        <result property="grpNo"      column="grp_no"/>
+        <result property="grpName"    column="grp_name"/>
+        <result property="grpParent"  column="grp_parent"/>
+        <result property="childCnt"   column="child_cnt"/>
+        <collection property="children"
+                    column="{grpParent=grp_no,userId=user_id}"
+                    select="com.example.netisbackend.mapper.topology.GrpMoveMapper.selectGrpTreeList"/>
+    </resultMap>
+
+    <resultMap type="com.example.netisbackend.dto.topology.MapGrpTreeDto" id="resultGrp">
+        <result property="grpNo"      column="grp_no"/>
+        <result property="grpName"    column="grp_name"/>
+        <result property="grpParent"  column="grp_parent"/>
+    </resultMap>
+
+    <!-- Select map user ID -->
+    <select id="selectMapId" resultType="String">
+        SELECT COALESCE(NULLIF(parent_id, ''), user_id)
+        FROM   com_user
+        WHERE  user_id = #{userId}
+    </select>
+
+    <!-- Group name lookup -->
+    <select id="selectGrpNameByGrpNo" resultType="String">
+        SELECT grp_name
+        FROM   cm_topo_group
+        WHERE  grp_no = #{grpNo}
+          AND  user_id = <include refid="selectMapUserId"/>
+        LIMIT 1
+    </select>
+
+    <!-- Group tree list -->
+    <select id="selectGrpTreeList" resultMap="resultGrpTree">
+        SELECT DISTINCT
+               grp_no,
+               grp_name,
+               grp_parent,
+               #{userId} AS user_id,
+               (SELECT COUNT(*) FROM cm_topo_leaf WHERE grp_no = A.grp_no AND grp_no != sub_no) AS child_cnt
+        FROM   cm_topo_group A
+        WHERE  grp_parent = #{grpParent}
+          AND  user_id = <include refid="selectMapUserId"/>
+        ORDER BY grp_name
+    </select>
+
+    <!-- Link count for item -->
+    <select id="selectLinkCnt" resultType="int">
+        SELECT COUNT(*)
+        FROM   cm_topo_link
+        WHERE  (item_no1 = #{itemNo} OR item_no2 = #{itemNo})
+          AND  user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- Point info for item -->
+    <select id="selectPointInfo" resultType="hashmap">
+        SELECT point1, point2, point3
+        FROM   cm_topo_link
+        WHERE  (item_no1 = #{itemNo} OR item_no2 = #{itemNo})
+          AND  user_id = <include refid="selectMapUserId"/>
+    </select>
+
+    <!-- Delete points for item -->
+    <delete id="deletePointForItem">
+        DELETE FROM cm_topo_item
+        WHERE  dev_kind1 = 'POINT'
+          AND  dev_kind2 = 'POINT'
+          AND  grp_no = #{grpNo}
+          AND  item_no IN (#{point1}::bigint, #{point2}::bigint, #{point3}::bigint)
+          AND  user_id = <include refid="selectMapUserId"/>
+    </delete>
+
+    <!-- Delete links for items -->
+    <delete id="deleteLinkForItem">
+        DELETE FROM cm_topo_link
+        WHERE  grp_no = #{grpNo}
+          AND  (
+                <foreach collection="itemNos" item="item" separator=" OR ">
+                    item_no1 = #{item} OR item_no2 = #{item}
+                </foreach>
+               )
+          AND  user_id = <include refid="selectMapUserId"/>
+    </delete>
+
+    <!-- Update item group number -->
+    <update id="updateGrpNoForItem">
+        UPDATE cm_topo_item
+        SET    grp_no = #{newGrpNo}
+        WHERE  item_no IN (
+            <foreach collection="itemNos" item="item" separator=",">
+                #{item}
+            </foreach>
+        )
+          AND  user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- Update grp_parent for group items -->
+    <update id="updateGrpParentForGrpItem">
+        UPDATE cm_topo_group
+        SET    grp_parent = #{newGrpNo}
+        WHERE  grp_no IN (
+            SELECT mng_no
+            FROM   cm_topo_item
+            WHERE  item_no IN (
+                <foreach collection="itemNos" item="item" separator=",">
+                    #{item}
+                </foreach>
+            )
+              AND  user_id = <include refid="selectMapUserId"/>
+              AND  dev_kind1 = 'GRP'
+        )
+          AND  user_id = <include refid="selectMapUserId"/>
+    </update>
+
+    <!-- Group list by item number -->
+    <select id="selectGrpListByItemNo" resultMap="resultGrp">
+        SELECT grp_no,
+               grp_name,
+               grp_parent
+        FROM   cm_topo_group
+        WHERE  grp_no IN (
+            SELECT mng_no
+            FROM   cm_topo_item T
+            WHERE  T.item_no IN (
+                <foreach collection="itemNos" item="item" separator=",">
+                    #{item}
+                </foreach>
+            )
+              AND  T.user_id = #{userId}
+              AND  T.dev_kind1 = 'GRP'
+        )
+    </select>
+
+    <!-- Call sp_make_topo_leaf_move (PostgreSQL function) -->
+    <select id="procSpMakeTopoLeafMove" resultType="void" statementType="CALLABLE">
+        SELECT sp_make_topo_leaf_move(#{userId}, #{grpParent}::bigint, #{grpNo}::bigint)
+    </select>
+
+    <!-- Call sp_make_topo_leaf (PostgreSQL function) -->
+    <select id="procSpMakeTopoLeaf" resultType="void" statementType="CALLABLE">
+        SELECT sp_make_topo_leaf(#{userId})
+    </select>
+
+</mapper>

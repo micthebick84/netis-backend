@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.netisbackend.mapper.topology.ItemDelMapper">
+
+    <sql id="selectMapUserId">
+        (SELECT COALESCE(NULLIF(parent_id, ''), user_id) FROM com_user WHERE user_id = #{userId})
+    </sql>
+
+    <!-- 맵 사용자ID 조회 -->
+    <select id="selectKeyUserId" resultType="String">
+        SELECT A.user_id
+        FROM (SELECT COALESCE(NULLIF(parent_id, ''), user_id) AS user_id FROM com_user WHERE user_id = #{userId}) A
+    </select>
+
+    <!-- 회선 삭제 -->
+    <delete id="deleteLink">
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (#{point1}::bigint, #{point2}::bigint, #{point3}::bigint)
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_link_multi
+        WHERE link_no = #{linkNo}
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_link
+        WHERE link_no = #{linkNo}
+          AND user_id = #{keyUserId};
+    </delete>
+
+    <!-- 회선 multi 삭제 -->
+    <delete id="deleteLinkMulti">
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (
+            <foreach collection="delLinkList" item="link" separator=",">
+                #{link.point1}::bigint, #{link.point2}::bigint, #{link.point3}::bigint
+            </foreach>
+        )
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_link_multi
+        WHERE link_no IN (
+            <foreach collection="delLinkList" item="link" separator=",">
+                #{link.linkNo}
+            </foreach>
+        )
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_link
+        WHERE link_no IN (
+            <foreach collection="delLinkList" item="link" separator=",">
+                #{link.linkNo}
+            </foreach>
+        )
+          AND user_id = #{keyUserId};
+    </delete>
+
+    <!-- 포인트 삭제 -->
+    <delete id="deletePoint">
+        UPDATE cm_topo_link SET point1 = NULL WHERE point1 = #{itemNo} AND user_id = #{keyUserId};
+        UPDATE cm_topo_link SET point2 = NULL WHERE point2 = #{itemNo} AND user_id = #{keyUserId};
+        UPDATE cm_topo_link SET point3 = NULL WHERE point3 = #{itemNo} AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_item
+        WHERE item_no = #{itemNo}
+          AND user_id = #{keyUserId}
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT';
+    </delete>
+
+    <!-- 아이템 삭제 -->
+    <delete id="deleteItem">
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (SELECT point1 FROM cm_topo_link
+                          WHERE item_no1 = #{itemNo} AND user_id = #{keyUserId})
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (SELECT point1 FROM cm_topo_link
+                          WHERE item_no2 = #{itemNo} AND user_id = #{keyUserId})
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (SELECT point2 FROM cm_topo_link
+                          WHERE item_no1 = #{itemNo} AND user_id = #{keyUserId})
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (SELECT point2 FROM cm_topo_link
+                          WHERE item_no2 = #{itemNo} AND user_id = #{keyUserId})
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (SELECT point3 FROM cm_topo_link
+                          WHERE item_no1 = #{itemNo} AND user_id = #{keyUserId})
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_item
+        WHERE item_no IN (SELECT point3 FROM cm_topo_link
+                          WHERE item_no2 = #{itemNo} AND user_id = #{keyUserId})
+          AND dev_kind1 = 'POINT'
+          AND dev_kind2 = 'POINT'
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_link_multi
+        WHERE user_id = #{keyUserId}
+          AND link_no IN (
+              SELECT link_no
+              FROM cm_topo_link
+              WHERE user_id = #{keyUserId}
+                AND (item_no1 = #{itemNo} OR item_no2 = #{itemNo})
+          );
+
+        DELETE FROM cm_topo_link
+        WHERE (item_no1 = #{itemNo} OR item_no2 = #{itemNo})
+          AND user_id = #{keyUserId};
+
+        DELETE FROM cm_topo_item
+        WHERE item_no = #{itemNo}
+          AND user_id = #{keyUserId};
+    </delete>
+
+    <!-- 임의장비 삭제 -->
+    <delete id="deleteEtc">
+        DELETE FROM cm_topo_etc
+        WHERE item_no = #{itemNo}
+          AND user_id = #{keyUserId}
+    </delete>
+
+    <!-- 그룹아이템 삭제 (cascade) -->
+    <delete id="deleteGroup">
+        <!-- 그룹 하위 아이템의 링크 multi 삭제 -->
+        DELETE FROM cm_topo_link_multi
+        WHERE link_no IN (
+            SELECT K.link_no
+            FROM cm_topo_link K
+            INNER JOIN (
+                SELECT A.item_no
+                FROM cm_topo_item A
+                INNER JOIN (
+                    SELECT sub_no FROM cm_topo_leaf
+                    WHERE grp_no = #{mngNo} AND user_id = #{keyUserId}
+                ) B ON A.grp_no = B.sub_no
+                WHERE A.user_id = #{keyUserId}
+            ) L ON K.item_no1 = L.item_no OR K.item_no2 = L.item_no
+            WHERE K.user_id = #{keyUserId}
+        )
+          AND user_id = #{keyUserId};
+
+        <!-- 그룹 하위 아이템의 링크 삭제 -->
+        DELETE FROM cm_topo_link
+        WHERE link_no IN (
+            SELECT K.link_no
+            FROM cm_topo_link K
+            INNER JOIN (
+                SELECT A.item_no
+                FROM cm_topo_item A
+                INNER JOIN (
+                    SELECT sub_no FROM cm_topo_leaf
+                    WHERE grp_no = #{mngNo} AND user_id = #{keyUserId}
+                ) B ON A.grp_no = B.sub_no
+                WHERE A.user_id = #{keyUserId}
+            ) L ON K.item_no1 = L.item_no OR K.item_no2 = L.item_no
+            WHERE K.user_id = #{keyUserId}
+        )
+          AND user_id = #{keyUserId};
+
+        <!-- 그룹 자체 링크 삭제 -->
+        DELETE FROM cm_topo_link
+        WHERE user_id = #{keyUserId}
+          AND grp_no = #{mngNo};
+
+        <!-- 그룹 하위 ETC 삭제 -->
+        DELETE FROM cm_topo_etc
+        WHERE user_id = #{keyUserId}
+          AND item_no IN (
+              SELECT A.item_no
+              FROM cm_topo_item A
+              INNER JOIN cm_topo_leaf B ON A.user_id = B.user_id AND A.grp_no = B.sub_no
+              WHERE A.dev_kind1 = 'ETC'
+                AND A.user_id = #{keyUserId}
+                AND B.grp_no = #{mngNo}
+          );
+
+        <!-- 그룹 하위 아이템 삭제 -->
+        DELETE FROM cm_topo_item
+        WHERE grp_no IN (
+            SELECT sub_no FROM cm_topo_leaf
+            WHERE user_id = #{keyUserId} AND grp_no = #{mngNo}
+        )
+          AND user_id = #{keyUserId};
+
+        <!-- 그룹 하위 드로우 툴 삭제 -->
+        DELETE FROM cm_topo_draw_tool
+        WHERE grp_no IN (
+            SELECT sub_no FROM cm_topo_leaf
+            WHERE user_id = #{keyUserId} AND grp_no = #{mngNo}
+        )
+          AND user_id = #{keyUserId};
+
+        <!-- 그룹 아이템 자체 삭제 -->
+        DELETE FROM cm_topo_item
+        WHERE item_no = #{itemNo}
+          AND dev_kind1 = 'GRP'
+          AND user_id = #{keyUserId};
+
+        <!-- 하위 그룹 삭제 -->
+        DELETE FROM cm_topo_group
+        WHERE grp_no IN (
+            SELECT B.grp_no
+            FROM cm_topo_leaf A
+            INNER JOIN cm_topo_group B ON A.sub_no = B.grp_no AND A.user_id = B.user_id
+            WHERE A.grp_no = #{mngNo}
+              AND A.user_id = #{keyUserId}
+        )
+          AND user_id = #{keyUserId};
+
+        <!-- 슬라이드 그룹 설정에서 삭제된 그룹 제거 (PostgreSQL) -->
+        UPDATE cm_topo_user
+        SET slide_grp_conf =
+            CASE
+                WHEN slide_grp_conf::text LIKE '%' || #{mngNo} || '%'
+                THEN REPLACE(REPLACE(REPLACE(
+                    CONCAT(
+                        SUBSTRING(slide_grp_conf::text, 1, POSITION(#{mngNo}::text IN slide_grp_conf::text) - 1),
+                        SUBSTRING(slide_grp_conf::text, POSITION(#{mngNo}::text IN slide_grp_conf::text) + LENGTH(#{mngNo}::text))
+                    ),
+                    ',,', ','), ',","', '","'), '":",', '":"')
+                ELSE slide_grp_conf::text
+            END
+        WHERE slide_grp_conf IS NOT NULL;
+    </delete>
+
+    <!-- 맵 사용자ID 조회 -->
+    <select id="selectMapId" resultType="String">
+        SELECT CASE WHEN isshare = 1 THEN parent_id ELSE user_id END
+        FROM com_user
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- CM_TOPO_LEAF 생성 프로시저 호출 (PostgreSQL function) -->
+    <select id="procSpMakeTopoLeaf" resultType="int">
+        SELECT sp_make_topo_leaf(#{userId})
+    </select>
+
+</mapper>
