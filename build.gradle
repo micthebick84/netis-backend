@@ -7,6 +7,9 @@ plugins {
 group = 'com.example'
 version = '0.0.1-SNAPSHOT'
 
+// Windows 한글 경로 문제 우회: build 디렉토리를 ASCII 경로로 설정
+project.layout.buildDirectory = file('C:/netis-build')
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
