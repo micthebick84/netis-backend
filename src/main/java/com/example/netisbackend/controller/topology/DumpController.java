@@ -5,8 +5,11 @@ import com.example.netisbackend.dto.topology.TopoDumpDto;
 import com.example.netisbackend.dto.topology.TopoRestHistDto;
 import com.example.netisbackend.service.topology.DumpService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -25,12 +28,10 @@ public class DumpController {
         return ApiResponse.success(data);
     }
 
-    @PostMapping("/import")
-    public ApiResponse<String> importTopology(@RequestBody Map<String, Object> params) {
-        // TODO: Accept MultipartFile for XML upload when XML parsing is implemented
-        String userId = (String) params.get("userId");
-        byte[] xmlData = (byte[]) params.get("xmlData");
-        dumpService.importTopology(userId, xmlData);
+    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<String> importTopology(@RequestParam String userId,
+                                              @RequestPart("file") MultipartFile file) throws IOException {
+        dumpService.importTopology(userId, file.getBytes());
         return ApiResponse.success("가져오기가 완료되었습니다.");
     }
 
@@ -57,6 +58,12 @@ public class DumpController {
         String sessUserIp = (String) params.get("sessUserIp");
         dumpService.restoreFromDump(userId, dumpSeq, sessUserIp);
         return ApiResponse.success("복원이 완료되었습니다.");
+    }
+
+    @DeleteMapping("/delete")
+    public ApiResponse<String> deleteDump(@RequestParam long dumpSeq) {
+        dumpService.deleteDump(dumpSeq);
+        return ApiResponse.success("삭제가 완료되었습니다.");
     }
 
     // ==================== Restore History ====================

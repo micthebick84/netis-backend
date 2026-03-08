@@ -52,6 +52,9 @@ public interface DumpMapper {
 
     Map<String, Object> selectDumpXML(@Param("dumpSeq") long dumpSeq);
 
+    // --- Delete dump ---
+    void deleteDump(@Param("dumpSeq") long dumpSeq);
+
     // --- Restore history ---
     void insertRestoreHist(Map<String, Object> params);
 

@@ -10,10 +10,18 @@ import com.example.netisbackend.mapper.topology.ModeSettingMapper;
 import com.example.netisbackend.dto.topology.MapTopoGrpDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 
@@ -26,18 +34,36 @@ public class ModeSettingService {
     private final D3TopoMapper d3TopoMapper;
     private final DrawToolMapper drawToolMapper;
 
+    @Value("${app.upload-path}")
+    private String uploadPath;
+
     public List<ComImgDto> getComImgList(Map<String, Object> params) {
         return modeSettingMapper.selectComImgList(params);
     }
 
     @Transactional
     public ComImgDto addComImg(Map<String, Object> params) {
-        // TODO: File I/O - save uploaded image file to storage
-        // String imgKind2 = params.get("imgKind2").toString();
-        // String folder = imgKind2.equals("BG") ? "bg" : "micons";
-        // String imgExt = imgKind2.equals("BG") ? ".png" : ".PNG";
-        // String fileName = params.get("imgUid").toString() + imgExt;
-        // Save byte[] params.get("img") to file path: {uploadPath}/image/d3/{folder}/{fileName}
+        String imgKind2 = params.get("imgKind2").toString();
+        String folder = imgKind2.equals("BG") ? "bg" : "micons";
+        String imgExt = imgKind2.equals("BG") ? ".png" : ".PNG";
+        String fileName = params.get("imgUid").toString() + imgExt;
+        String filePath = uploadPath + "/image/d3/";
+
+        Path dirPath = Paths.get(filePath, folder);
+        try {
+            Files.createDirectories(dirPath);
+        } catch (IOException e) {
+            log.error("이미지 디렉토리 생성 실패: {}", dirPath, e);
+        }
+
+        Path path = Paths.get(filePath + folder, fileName);
+        try (OutputStream os = new BufferedOutputStream(
+                Files.newOutputStream(path, StandardOpenOption.CREATE_NEW))) {
+            os.write((byte[]) params.get("img"));
+            os.flush();
+        } catch (IOException e) {
+            throw new RuntimeException("이미지 파일 업로드 중 에러가 발생하였습니다.", e);
+        }
 
         modeSettingMapper.insertComImg(params);
         return modeSettingMapper.selectComImgInfo(params);
@@ -51,15 +77,25 @@ public class ModeSettingService {
     @Transactional
     @SuppressWarnings("unchecked")
     public void delComImg(Map<String, Object> params) {
-        // DB delete
         modeSettingMapper.deleteComImg(params);
 
-        // TODO: File I/O - delete image files from storage
-        // String imgKind2 = params.get("imgKind2").toString();
-        // String folder = imgKind2.equals("BG") ? "bg" : "micons";
-        // String imgExt = imgKind2.equals("BG") ? ".png" : ".PNG";
-        // List<Map<String, Object>> imgList = (List<Map<String, Object>>) params.get("imgList");
-        // Delete each file: {uploadPath}/image/d3/{folder}/{imgUid}{imgExt}
+        String imgKind2 = params.get("imgKind2").toString();
+        String folder = imgKind2.equals("BG") ? "bg" : "micons";
+        String imgExt = imgKind2.equals("BG") ? ".png" : ".PNG";
+
+        List<Map<String, Object>> imgList = (List<Map<String, Object>>) params.get("imgList");
+        if (!CollectionUtils.isEmpty(imgList)) {
+            for (Map<String, Object> imgMap : imgList) {
+                String fileName = imgMap.get("imgUid").toString() + imgExt;
+                Path path = Paths.get(uploadPath + String.format("/image/d3/%s/%s", folder, fileName));
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException e) {
+                    log.error("이미지 파일 삭제 실패: {}", path, e);
+                    throw new RuntimeException("이미지 파일 삭제 중 에러가 발생하였습니다.", e);
+                }
+            }
+        }
     }
 
     public List<ErrActionDto> getErrActionList(Map<String, Object> params) {
@@ -113,7 +149,18 @@ public class ModeSettingService {
         }
     }
 
+    private void resolveUserId(Map<String, Object> params) {
+        Object userId = params.get("userId");
+        if (userId != null) {
+            String resolved = d3TopoMapper.resolveUserId(userId.toString());
+            if (resolved != null) {
+                params.put("userId", resolved);
+            }
+        }
+    }
+
     public TopoEnvSettingDto getTopoEnvSetting(Map<String, Object> params) {
+        resolveUserId(params);
         params.put("grpNo", 1);
         MapTopoGrpDto grpDto = d3TopoMapper.selectTopoGrpInfo(params);
         if (grpDto == null) {
@@ -132,9 +179,24 @@ public class ModeSettingService {
 
     @Transactional
     public void addSoundFile(Map<String, Object> params) {
-        // TODO: File I/O - save uploaded audio file to storage
-        // String fileName = params.get("fileName").toString();
-        // Save byte[] params.get("audio") to file path: {uploadPath}/audio/{fileName}
+        String fileName = params.get("fileName").toString();
+        String soundFilePath = uploadPath + "/audio/";
+
+        Path dirPath = Paths.get(soundFilePath);
+        try {
+            Files.createDirectories(dirPath);
+        } catch (IOException e) {
+            log.error("오디오 디렉토리 생성 실패: {}", dirPath, e);
+        }
+
+        Path path = Paths.get(soundFilePath, fileName);
+        try (OutputStream os = new BufferedOutputStream(
+                Files.newOutputStream(path, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
+            os.write((byte[]) params.get("audio"));
+            os.flush();
+        } catch (IOException e) {
+            throw new RuntimeException("오디오 파일 업로드 중 에러가 발생하였습니다.", e);
+        }
 
         modeSettingMapper.updateSoundSetting(params);
     }

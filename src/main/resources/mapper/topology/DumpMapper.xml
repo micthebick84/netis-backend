@@ -269,6 +269,12 @@
         WHERE   DUMP_SEQ = #{dumpSeq}
     </select>
 
+    <!-- ==================== Delete Dump ==================== -->
+
+    <delete id="deleteDump">
+        DELETE FROM CM_TOPO_DUMP WHERE DUMP_SEQ = #{dumpSeq}
+    </delete>
+
     <!-- ==================== Restore History ==================== -->
 
     <insert id="insertRestoreHist">

@@ -10,6 +10,8 @@ import java.util.Map;
 @Mapper
 public interface D3TopoMapper {
 
+    String resolveUserId(@Param("userId") String userId);
+
     String selectTopoEditYn(@Param("userId") String userId);
 
     List<MapTopGrpDto> selectMapTopGrpInfo(Map<String, Object> params);

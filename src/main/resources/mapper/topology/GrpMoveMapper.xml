@@ -141,12 +141,12 @@
     </select>
 
     <!-- Call sp_make_topo_leaf_move (PostgreSQL function) -->
-    <select id="procSpMakeTopoLeafMove" resultType="void" statementType="CALLABLE">
+    <select id="procSpMakeTopoLeafMove" resultType="java.util.Map" statementType="CALLABLE">
         SELECT sp_make_topo_leaf_move(#{userId}, #{grpParent}::bigint, #{grpNo}::bigint)
     </select>
 
     <!-- Call sp_make_topo_leaf (PostgreSQL function) -->
-    <select id="procSpMakeTopoLeaf" resultType="void" statementType="CALLABLE">
+    <select id="procSpMakeTopoLeaf" resultType="java.util.Map" statementType="CALLABLE">
         SELECT sp_make_topo_leaf(#{userId})
     </select>
 

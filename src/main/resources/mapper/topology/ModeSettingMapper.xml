@@ -353,7 +353,7 @@
     </update>
 
     <!-- Call event proc (PostgreSQL function) -->
-    <select id="procEventProc" resultType="void" statementType="CALLABLE">
+    <select id="procEventProc" resultType="java.util.Map" statementType="CALLABLE">
         SELECT event_proc_topo()
     </select>
 
