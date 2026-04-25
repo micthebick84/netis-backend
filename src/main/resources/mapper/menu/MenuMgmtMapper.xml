@@ -36,7 +36,7 @@
                 visible_order,
                 is_webuse,
                 web_icon_class
-        FROM    com_menu
+        FROM    com.menu
         WHERE   menu_kind = 'PAGE'
         AND     site_name = #{siteName}
     </select>
@@ -53,7 +53,7 @@
                 visible_order,
                 is_webuse,
                 web_icon_class
-        FROM    com_menu
+        FROM    com.menu
         WHERE   menu_kind = 'PAGE_GROUP'
         AND     menu_page_no = #{menuPageNo}
         AND     site_name = #{siteName}
@@ -84,8 +84,8 @@
                      THEN ''
                      ELSE b.menu_name
                 END AS org_menu_name
-        FROM    com_menu a
-        LEFT OUTER JOIN com_menu_layout b
+        FROM    com.menu a
+        LEFT OUTER JOIN conf.menu_layout b
                 ON a.guid = b.guid
         WHERE   menu_kind = 'MENU'
         AND     menu_page_grp_no = #{menuPageGrpNo}

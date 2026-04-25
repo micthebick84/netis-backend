@@ -10,8 +10,7 @@
         <result property="cellTel"      column="cell_tel"/>
         <result property="email"        column="email"/>
         <result property="userPcIp"     column="user_pc_ip"/>
-        <result property="account"      column="account"/>
-        <result property="useFlag"      column="use_flag"/>
+        <result property="useFlag"      column="enabled_use"/>
         <result property="isRecvSms"    column="is_recv_sms"/>
         <result property="isRecvEmail"  column="is_recv_email"/>
         <result property="auth"         column="auth"/>
@@ -21,24 +20,24 @@
 
     <select id="selectUserList" resultMap="userResultMap">
         SELECT user_id, user_name, dept_name, cell_tel, email,
-               user_pc_ip, account, use_flag, is_recv_sms, is_recv_email,
+               user_pc_ip, enabled_use, is_recv_sms, is_recv_email,
                auth, pass_date, pass_chg_date
-        FROM   com_user
+        FROM   com."user"
         ORDER  BY user_id
     </select>
 
     <select id="selectUserById" resultMap="userResultMap">
         SELECT user_id, user_name, dept_name, cell_tel, email,
-               user_pc_ip, account, use_flag, is_recv_sms, is_recv_email,
+               user_pc_ip, enabled_use, is_recv_sms, is_recv_email,
                auth, pass_date, pass_chg_date
-        FROM   com_user
+        FROM   com."user"
         WHERE  user_id = #{userId}
     </select>
 
     <insert id="insertUser">
-        INSERT INTO com_user (
+        INSERT INTO com."user" (
             user_id, password, pw_salt, user_name, dept_name,
-            cell_tel, email, user_pc_ip, use_flag,
+            cell_tel, email, user_pc_ip, enabled_use,
             is_recv_sms, is_recv_email, auth, pass_chg_date
         ) VALUES (
             #{userId}, #{password}, #{pwSalt}, #{userName}, #{deptName},
@@ -48,13 +47,13 @@
     </insert>
 
     <update id="updateUser">
-        UPDATE com_user
+        UPDATE com."user"
         SET    user_name     = #{userName},
                dept_name     = #{deptName},
                cell_tel      = #{cellTel},
                email         = #{email},
                user_pc_ip    = #{userPcIp},
-               use_flag      = #{useFlag},
+               enabled_use   = #{useFlag},
                is_recv_sms   = #{isRecvSms},
                is_recv_email = #{isRecvEmail},
                auth          = #{auth}
@@ -62,11 +61,11 @@
     </update>
 
     <delete id="deleteUser">
-        DELETE FROM com_user WHERE user_id = #{userId}
+        DELETE FROM com."user" WHERE user_id = #{userId}
     </delete>
 
     <update id="updatePassword">
-        UPDATE com_user
+        UPDATE com."user"
         SET    password      = #{hashedPassword},
                pw_salt       = #{salt},
                pass_chg_date = CURRENT_TIMESTAMP

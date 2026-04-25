@@ -93,7 +93,6 @@ public class UserService {
                 .cellTel(comUser.getCellTel())
                 .auth(comUser.getAuth())
                 .useFlag(comUser.getUseFlag())
-                .dashboardAuth(comUser.getDashboardAuth())
                 .menuAuthNo(comUser.getMenuAuthNo())
                 .build();
     }

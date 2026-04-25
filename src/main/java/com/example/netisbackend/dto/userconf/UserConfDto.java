@@ -20,7 +20,6 @@ public class UserConfDto {
     private String cellTel;
     private String email;
     private String userPcIp;
-    private String account;
     private Integer useFlag;
     private Integer isRecvSms;
     private Integer isRecvEmail;

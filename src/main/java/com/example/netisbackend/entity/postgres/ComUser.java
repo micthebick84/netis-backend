@@ -8,7 +8,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "com_user")
+@Table(name = "\"user\"", schema = "com")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -42,32 +42,14 @@ public class ComUser {
     @Column
     private String auth;
 
-    @Column(name = "use_flag")
+    @Column(name = "enabled_use")
     private Short useFlag;
-
-    @Column(name = "dev_grp_no")
-    private Integer devGrpNo;
 
     @Column(name = "auth_grp_no")
     private Integer authGrpNo;
 
-    @Column
-    private Short manage;
-
     @Column(name = "parent_id")
     private String parentId;
-
-    @Column
-    private String account;
-
-    @Column(name = "netis_web_theme")
-    private String netisWebTheme;
-
-    @Column(name = "netis_web_menu_min")
-    private String netisWebMenuMin;
-
-    @Column(name = "dashboard_auth")
-    private String dashboardAuth;
 
     @Column(name = "pass_date")
     private LocalDateTime passDate;

@@ -20,6 +20,5 @@ public class ComUserResponse {
     private String cellTel;
     private String auth;
     private Short useFlag;
-    private String dashboardAuth;
     private Integer menuAuthNo;
 }

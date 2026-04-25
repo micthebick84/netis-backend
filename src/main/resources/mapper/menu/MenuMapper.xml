@@ -85,8 +85,8 @@
                      ELSE menu.usr_menu_type
                 END AS menu_type,
                 menu.link_view_type
-        FROM    com_menu page
-        JOIN    com_menu page_group
+        FROM    com.menu page
+        JOIN    com.menu page_group
                 ON page.menu_no = page_group.menu_page_no
                 AND page.site_name = page_group.site_name
         JOIN    (
@@ -97,15 +97,15 @@
                              THEN a1.menu_type
                              ELSE 'LAYOUT'
                         END AS usr_menu_type
-                FROM    com_menu a1
-                LEFT OUTER JOIN cm_cfg_layout_view_env b1
+                FROM    com.menu a1
+                LEFT OUTER JOIN conf.layout_view_env b1
                         ON a1.guid = b1.view_kind AND b1.user_id = #{userId}
                 LEFT OUTER JOIN (
                     SELECT guid, menu_name, grp_type, scond_use, rt_use
-                    FROM   com_menu_layout
+                    FROM   conf.menu_layout
                     UNION ALL
                     SELECT guid, menu_name, 'NONE' AS grp_type, scond_use, 0 AS rt_use
-                    FROM   com_menu_widget
+                    FROM   conf.menu_widget
                 ) c1 ON a1.guid = c1.guid
                 ) menu
                 ON page.menu_no = menu.menu_page_no
@@ -119,8 +119,8 @@
         <if test="auth != 'System'">
             AND menu.menu_no IN (
                 SELECT rel_key_no
-                FROM   cm_auth_menu_rel
-                WHERE  auth_no = CASE
+                FROM   rel.auth_menu_rel
+                WHERE  auth_id = CASE
                     WHEN #{menuAuthNo} = 0 THEN
                         CASE
                             WHEN #{auth} = 'Admin' THEN 1
@@ -144,11 +144,11 @@
                 END AS page_grp_no,
                 a.menu_name,
                 a.guid
-        FROM    com_menu a
+        FROM    com.menu a
         WHERE   site_name = #{siteName}
         AND     ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
         <if test="_parameter.containsKey('disableLayout') and disableLayout == 1">
-            AND NOT EXISTS (SELECT 1 FROM com_menu_layout b WHERE a.guid = b.guid)
+            AND NOT EXISTS (SELECT 1 FROM conf.menu_layout b WHERE a.guid = b.guid)
         </if>
         ORDER BY visible_order ASC
     </select>
@@ -157,7 +157,7 @@
         SELECT a.menu_no AS "menuNo", COALESCE(b.menu_cnt, 0) AS "menuCnt"
         FROM (
             SELECT menu_no, menu_name
-            FROM   com_menu
+            FROM   com.menu
             WHERE  site_name = #{siteName}
             AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
             AND    menu_kind = 'PAGE_GROUP'
@@ -166,7 +166,7 @@
         LEFT JOIN (
             SELECT CASE WHEN menu_kind = 'MENU' THEN menu_page_grp_no END AS page_grp_no,
                    COUNT(menu_no) AS menu_cnt
-            FROM   com_menu
+            FROM   com.menu
             WHERE  site_name = #{siteName}
             AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
             AND    menu_kind = 'MENU'
@@ -188,7 +188,7 @@
                            WHEN menu_kind = 'PAGE_GROUP' THEN menu_page_no
                        END AS page_grp_no,
                        menu_name
-                FROM   com_menu
+                FROM   com.menu
                 WHERE  site_name = #{siteName}
                 AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
             ) a
@@ -203,7 +203,7 @@
                                WHEN menu_kind = 'PAGE_GROUP' THEN menu_page_no
                            END AS page_grp_no,
                            menu_name
-                    FROM   com_menu
+                    FROM   com.menu
                     WHERE  site_name = #{siteName}
                     AND    ((is_webuse = 1 AND menu_kind = 'MENU') OR menu_kind != 'MENU')
                 ) sub
@@ -220,8 +220,8 @@
     <select id="selectLayoutMenuList" resultMap="resultLayoutMenu">
         SELECT  a.menu_name, a.guid, a.grp_type, a.scond_use,
                 CASE WHEN b.guid IS NULL THEN 0 ELSE 1 END AS is_reg_menu
-        FROM    com_menu_layout a
-        LEFT JOIN com_menu b
+        FROM    conf.menu_layout a
+        LEFT JOIN com.menu b
                 ON a.guid = b.guid
                 AND b.menu_kind = 'MENU'
                 AND b.site_name = #{siteName}
@@ -229,7 +229,7 @@
 
     <select id="selectLayoutMenuCondList" resultMap="resultLayoutMenuCond">
         SELECT guid, cond_type
-        FROM   com_menu_layout_type
+        FROM   conf.menu_layout_type
         <if test="_parameter.containsKey('guid') and guid != null">
             WHERE guid = #{guid}
         </if>
@@ -237,9 +237,9 @@
 
     <select id="selectMenuAuthExistCnt" resultType="int">
         SELECT  COUNT(*) AS cnt
-        FROM    com_menu a
-        JOIN    cm_auth_menu_rel b ON a.menu_no = b.rel_key_no
-        JOIN    com_user c ON b.auth_no = COALESCE(
+        FROM    com.menu a
+        JOIN    rel.auth_menu_rel b ON a.menu_no = b.rel_key_no
+        JOIN    com."user" c ON b.auth_id = COALESCE(
                     c.menu_auth_no,
                     CASE
                         WHEN c.auth = 'Admin' THEN 1
@@ -254,20 +254,20 @@
 
     <select id="selectDashMenuNo" resultType="String">
         SELECT menu_no::text
-        FROM   com_menu
+        FROM   com.menu
         WHERE  guid = 'BB590E9A-A453-4F8A-B1D8-737A4D07BDD0'
         LIMIT 1
     </select>
 
     <select id="selectMenuLoc" resultType="java.util.HashMap">
         WITH parent_menu AS (
-            SELECT * FROM com_menu WHERE menu_kind IN ('PAGE', 'PAGE_GROUP')
+            SELECT * FROM com.menu WHERE menu_kind IN ('PAGE', 'PAGE_GROUP')
         )
         SELECT
             (SELECT menu_name FROM parent_menu pm WHERE pm.menu_no = m.menu_page_no) AS "menuPageName",
             (SELECT menu_name FROM parent_menu pm WHERE pm.menu_no = m.menu_page_grp_no) AS "menuGrpName",
             m.menu_name AS "menuName"
-        FROM com_menu m
+        FROM com.menu m
         WHERE guid = #{guid}
     </select>
 
